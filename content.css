@@ -1,47 +1,47 @@
 /* Kayko Content Script Styles */
 
 .kayko-icon {
-  width: 32px;
-  height: 32px;
+  width: 56px;
+  height: 56px;
   cursor: pointer;
-  background: white;
+  background: transparent;
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
   z-index: 10000;
-  border: 2px solid transparent;
+  border: none;
   opacity: 0.9;
 }
 
 .kayko-icon:hover {
   transform: scale(1.15);
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+  box-shadow: none;
   opacity: 1;
 }
 
 .kayko-icon img {
-  width: 24px;
-  height: 24px;
+  width: 48px;
+  height: 48px;
   display: block;
   transition: all 0.3s ease;
+  object-fit: contain;
 }
 
-/* Idle state - gray/neutral */
+/* Idle state - original colors */
 .kayko-icon.idle {
-  border-color: #9CA3AF;
   opacity: 0.8;
 }
 
 .kayko-icon.idle img {
-  filter: grayscale(100%) opacity(0.7);
+  filter: none;
+  opacity: 1;
 }
 
 /* Saving state - blue pulsing */
 .kayko-icon.saving {
-  border-color: #3B82F6;
   animation: kayko-pulse 1.5s ease-in-out infinite;
 }
 
@@ -52,7 +52,6 @@
 
 /* Saved state - green with checkmark effect */
 .kayko-icon.saved {
-  border-color: #10B981;
   animation: kayko-success 0.6s ease;
 }
 
@@ -72,11 +71,11 @@
 
 @keyframes kayko-pulse {
   0%, 100% {
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+    opacity: 0.8;
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+    opacity: 1;
     transform: scale(1.05);
   }
 }
@@ -97,14 +96,15 @@
 
 @keyframes kayko-success {
   0% {
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+    opacity: 0.8;
+    transform: scale(1);
   }
   50% {
-    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.6);
+    opacity: 1;
     transform: scale(1.1);
   }
   100% {
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+    opacity: 0.8;
     transform: scale(1);
   }
 }

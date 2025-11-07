@@ -5,6 +5,7 @@
   const DEBOUNCE_DELAY = 3000; // 3 seconds
   const ICON_SIZE = 24;
   const trackedTextareas = new WeakMap();
+  const trackedIcons = new Set(); // Track icons separately since WeakMap can't be iterated
   let debounceTimers = new WeakMap();
 
   // Detect current LLM platform
@@ -18,20 +19,46 @@
     return 'Unknown LLM';
   }
 
+  // Safely get extension URL with error handling
+  function getExtensionURL(path) {
+    try {
+      if (chrome.runtime && chrome.runtime.getURL) {
+        return chrome.runtime.getURL(path);
+      }
+    } catch (error) {
+      console.warn('Kayko: Extension context invalidated, using fallback');
+    }
+    // Fallback: return a data URI or empty string
+    return '';
+  }
+
   // Create and inject the Kayko icon
   function createIcon(textarea) {
     const icon = document.createElement('div');
     icon.className = 'kayko-icon idle';
     
-    // Use the extension icon
-    const iconUrl = chrome.runtime.getURL('icons/icon128.png');
-    icon.innerHTML = `<img src="${iconUrl}" alt="Kayko" />`;
+    // Create img element that we can swap
+    const img = document.createElement('img');
+    img.alt = 'Kayko';
+    img.className = 'kayko-icon-img';
+    
+    // Set initial icon (idle state) - using custom idle icon
+    const iconUrl = getExtensionURL('icons/idle-icon.png');
+    if (iconUrl) {
+      img.src = iconUrl;
+    }
+    
+    icon.appendChild(img);
     icon.title = 'Kayko - Click to view saved prompts';
     
     // Click handler to open side panel
     icon.addEventListener('click', (e) => {
       e.stopPropagation();
-      chrome.runtime.sendMessage({ action: 'openSidePanel' });
+      try {
+        chrome.runtime.sendMessage({ action: 'openSidePanel' });
+      } catch (error) {
+        console.warn('Kayko: Extension context invalidated');
+      }
     });
 
     return icon;
@@ -44,10 +71,20 @@
     const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
     
     icon.style.position = 'absolute';
-    // Position at the top edge, slightly above the textarea
-    icon.style.top = `${rect.top + scrollTop - 16}px`; // 16px above (half the icon height)
-    // Position at the right edge
-    icon.style.left = `${rect.right + scrollLeft - 16}px`; // 16px from right edge (half icon width)
+    
+    // For ChatGPT, position on the right side (outside the textarea)
+    const isChatGPT = window.location.hostname.includes('chatgpt.com') || window.location.hostname.includes('openai.com');
+    
+    if (isChatGPT) {
+      // Position on the right side, vertically centered
+      icon.style.top = `${rect.top + scrollTop + (rect.height / 2) - 85}px`; // Vertically centered (half of 56px)
+      icon.style.left = `${rect.right + scrollLeft + 15}px`; // 25px to the right of textarea
+    } else {
+      // For other platforms, keep top-right position
+      icon.style.top = `${rect.top + scrollTop - 28}px`; // 28px above (half the icon height)
+      icon.style.left = `${rect.right + scrollLeft - 28}px`; // 28px from right edge (half icon width)
+    }
+    
     icon.style.zIndex = '10000';
   }
 
@@ -55,6 +92,31 @@
   function setIconState(icon, state) {
     icon.classList.remove('idle', 'saving', 'saved');
     icon.classList.add(state);
+    
+    // Get the img element
+    const img = icon.querySelector('.kayko-icon-img');
+    if (!img) return;
+    
+    // Change icon image based on state - using custom icons
+    let iconPath = '';
+    if (state === 'idle') {
+      // Idle state - custom idle icon
+      iconPath = 'icons/idle-icon.png';
+    } else if (state === 'saving') {
+      // Saving state - custom saving icon
+      iconPath = 'icons/saving-icon.png';
+    } else if (state === 'saved') {
+      // Saved state - back to idle icon but with green tint via CSS
+      iconPath = 'icons/idle-icon.png';
+    }
+    
+    // Safely set the icon source
+    if (iconPath) {
+      const iconUrl = getExtensionURL(iconPath);
+      if (iconUrl) {
+        img.src = iconUrl;
+      }
+    }
   }
 
   // Save prompt to storage
@@ -99,11 +161,20 @@
       await chrome.storage.local.set({ prompts });
       
       // Update badge count
-      chrome.runtime.sendMessage({ action: 'updateBadge' });
+      try {
+        chrome.runtime.sendMessage({ action: 'updateBadge' });
+      } catch (error) {
+        // Extension context might be invalidated, ignore silently
+      }
       
       return true;
     } catch (error) {
-      console.error('Kayko: Error saving prompt', error);
+      // Check if it's an extension context error
+      if (error.message && error.message.includes('Extension context invalidated')) {
+        console.warn('Kayko: Extension was reloaded. Please refresh the page.');
+      } else {
+        console.error('Kayko: Error saving prompt', error);
+      }
       return false;
     }
   }
@@ -143,11 +214,47 @@
     debounceTimers.set(textarea, timer);
   }
 
+  // Clean up all existing icons (prevent duplicates)
+  function cleanupIcons() {
+    try {
+      // Ensure trackedIcons is a Set
+      if (!trackedIcons || typeof trackedIcons.has !== 'function') {
+        console.warn('Kayko: trackedIcons is not properly initialized');
+        return;
+      }
+      
+      const existingIcons = document.querySelectorAll('.kayko-icon');
+      existingIcons.forEach(icon => {
+        // Check if this icon is still tracked using our Set
+        if (!trackedIcons.has(icon)) {
+          // Remove if not tracked
+          icon.remove();
+        }
+      });
+    } catch (error) {
+      console.error('Kayko: Error in cleanupIcons', error);
+    }
+  }
+
   // Track a textarea
   function trackTextarea(textarea) {
-    if (trackedTextareas.has(textarea)) return;
+    if (trackedTextareas.has(textarea)) {
+      // Reposition existing icon in case textarea moved
+      const existing = trackedTextareas.get(textarea);
+      if (existing && existing.icon && document.body.contains(existing.icon)) {
+        try {
+          positionIcon(textarea, existing.icon);
+        } catch (error) {
+          // Silently fail
+        }
+      }
+      return;
+    }
 
     try {
+      // Clean up any orphaned icons first
+      cleanupIcons();
+      
       // Create and inject icon
       const icon = createIcon(textarea);
       
@@ -164,6 +271,10 @@
 
       // Store reference
       trackedTextareas.set(textarea, { icon, textarea });
+      // Track icon in Set (with safety check)
+      if (trackedIcons && typeof trackedIcons.add === 'function') {
+        trackedIcons.add(icon);
+      }
 
       // Add input listeners (multiple events for better compatibility)
       const inputHandler = () => {
@@ -202,6 +313,10 @@
       const observer = new MutationObserver(() => {
         try {
           if (!document.body.contains(textarea)) {
+            // Remove from tracking Set (with safety check)
+            if (trackedIcons && typeof trackedIcons.delete === 'function') {
+              trackedIcons.delete(icon);
+            }
             icon.remove();
             observer.disconnect();
           }
@@ -268,6 +383,9 @@
     try {
       console.log('Kayko: Content script initialized on', window.location.hostname);
       
+      // Clean up any existing icons first (in case of page reactivation)
+      cleanupIcons();
+      
       // Initial detection
       detectTextareas();
 
@@ -327,11 +445,24 @@
       // Periodic check for new textareas (some sites load them dynamically)
       setInterval(() => {
         try {
+          // Clean up orphaned icons periodically
+          cleanupIcons();
           detectTextareas();
         } catch (error) {
           // Silently fail
         }
       }, 3000); // Changed from 2s to 3s to be less aggressive
+      
+      // Clean up icons when page becomes visible again (user returns to tab)
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          // Page is visible again, clean up any duplicates
+          setTimeout(() => {
+            cleanupIcons();
+            detectTextareas();
+          }, 500);
+        }
+      });
     } catch (error) {
       console.error('Kayko: Failed to initialize', error);
     }

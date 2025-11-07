@@ -64,7 +64,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["icons/icon128.png"],
+      "resources": ["icons/idle-icon.png", "icons/saving-icon.png"],
       "matches": ["<all_urls>"]
     }
   ]
