@@ -1,0 +1,15 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="#3B82F6"/>
+  
+  <!-- Shield shape -->
+  <path d="M64 24L40 36V56C40 72 48 86 64 92C80 86 88 72 88 56V36L64 24Z" fill="white"/>
+  
+  <!-- Checkmark -->
+  <path d="M54 60L60 66L74 52" stroke="#3B82F6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Document lines -->
+  <line x1="48" y1="72" x2="80" y2="72" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <line x1="48" y1="80" x2="72" y2="80" stroke="white" stroke-width="3" stroke-linecap="round"/>
+</svg>
+

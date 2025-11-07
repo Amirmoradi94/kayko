@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kayko - Saved Prompts</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="sidepanel-container">
+    <!-- Header -->
+    <header class="sidepanel-header">
+      <div class="header-top">
+        <h1>Kayko</h1>
+        <button id="settingsBtn" class="icon-btn" title="Settings">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 12.5C8.61929 12.5 7.5 11.3807 7.5 10C7.5 8.61929 8.61929 7.5 10 7.5C11.3807 7.5 12.5 8.61929 12.5 10C12.5 11.3807 11.3807 12.5 10 12.5Z" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M16.25 10C16.25 9.37868 16.6213 8.82534 17.1834 8.57666L17.5 8.4267C17.5 8.4267 17.9167 6.91667 17.0833 5.58333L16.8166 5.43334C16.2545 5.18466 15.8832 4.63132 15.8832 4.01L15.8832 3.75C15.8832 3.75 14.3732 2.91667 13.04 3.75L12.89 3.8166C12.2687 4.17869 11.4913 4.17869 10.87 3.8166L10.5733 3.64334C10.5733 3.64334 9.06333 2.80667 7.73 3.64L7.43 3.80666C6.80868 4.16876 6.03132 4.16876 5.41 3.80666L5.26 3.74C5.26 3.74 3.75 4.57333 3.75 5.90666L3.75 6.15666C3.75 6.77798 3.37868 7.33132 2.81666 7.58L2.5 7.73C2.5 7.73 1.66667 9.24 2.5 10.5733L2.66666 10.8733C3.02876 11.4946 3.02876 12.272 2.66666 12.8933L2.5 13.1933C2.5 13.1933 3.33333 14.7033 4.66667 14.8633L4.91667 14.8633C5.53799 14.8633 6.09132 15.2346 6.34 15.7967L6.49 16.11C6.49 16.11 7.99999 16.9433 9.33332 16.11L9.63332 15.9433C10.2546 15.5812 11.032 15.5812 11.6533 15.9433L11.9533 16.11C11.9533 16.11 13.4633 16.9433 14.7967 16.11L14.9633 15.8433C15.3254 15.222 15.3254 14.4446 15.9633 13.8233L16.1633 13.5733C16.1633 13.5733 16.9967 12.0633 16.1633 10.73L15.9967 10.43C15.6346 9.80868 15.6346 9.03132 15.9967 8.41L16.25 10Z" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </button>
+      </div>
+      <div class="search-bar">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Search prompts...">
+      </div>
+      <div class="filter-bar">
+        <select id="platformFilter" class="filter-select">
+          <option value="all">All Platforms</option>
+          <option value="ChatGPT">ChatGPT</option>
+          <option value="Claude">Claude</option>
+          <option value="Gemini">Gemini</option>
+          <option value="Grok">Grok</option>
+          <option value="Perplexity">Perplexity</option>
+        </select>
+        <select id="dateFilter" class="filter-select">
+          <option value="all">All Time</option>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+        </select>
+        <button id="favoritesFilter" class="icon-btn" title="Show favorites only">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 2L10.163 6.403L15 7.095L11.5 10.507L12.326 15.323L8 13.045L3.674 15.323L4.5 10.507L1 7.095L5.837 6.403L8 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Prompts List -->
+    <main class="prompts-list" id="promptsList">
+      <div class="empty-state" id="emptyState">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M32 56C45.2548 56 56 45.2548 56 32C56 18.7452 45.2548 8 32 8C18.7452 8 8 18.7452 8 32C8 45.2548 18.7452 56 32 56Z" stroke="#9CA3AF" stroke-width="3"/>
+          <path d="M24 32L28 36L40 24" stroke="#9CA3AF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h2>No saved prompts yet</h2>
+        <p>Start typing in any LLM chat and your prompts will be automatically saved here.</p>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="sidepanel-footer">
+      <div class="storage-info" id="storageInfo">
+        <span id="promptCount">0</span> prompts saved
+      </div>
+      <div class="footer-actions">
+        <button id="exportBtn" class="footer-btn">Export</button>
+        <button id="importBtn" class="footer-btn">Import</button>
+        <button id="clearBtn" class="footer-btn danger">Clear All</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Settings</h2>
+        <button id="closeSettingsBtn" class="icon-btn">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-item">
+          <label for="maxPromptsInput">Maximum prompts to keep:</label>
+          <input type="number" id="maxPromptsInput" min="10" max="1000" value="100">
+        </div>
+        <div class="setting-item">
+          <label for="excludedSitesInput">Excluded sites (comma-separated):</label>
+          <textarea id="excludedSitesInput" rows="3" placeholder="example.com, private-site.com"></textarea>
+        </div>
+        <div class="setting-item">
+          <label>
+            <input type="checkbox" id="autoSaveToggle" checked>
+            Enable auto-save
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="saveSettingsBtn" class="btn-primary">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="importFileInput" accept=".json" style="display: none;">
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
+

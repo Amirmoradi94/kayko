@@ -1,0 +1,34 @@
+# Node modules
+node_modules/
+
+# Distribution files
+dist/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+*.tmp
+.cache/
+
+# Environment files
+.env
+.env.local
+
+# Icon placeholders (if you generated proper icons)
+*.png.placeholder
+

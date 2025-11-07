@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kayko</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="popup-header">
+      <h1>Kayko</h1>
+      <p class="tagline">Your prompt safety net</p>
+    </div>
+
+    <div class="popup-stats">
+      <div class="stat-card">
+        <div class="stat-value" id="totalPrompts">0</div>
+        <div class="stat-label">Total Prompts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="todayPrompts">0</div>
+        <div class="stat-label">Today</div>
+      </div>
+    </div>
+
+    <div class="quick-actions">
+      <button id="openPanelBtn" class="action-btn primary">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 5H17M3 10H17M3 15H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        View Saved Prompts
+      </button>
+      <button id="quickSettingsBtn" class="action-btn">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 12.5C8.61929 12.5 7.5 11.3807 7.5 10C7.5 8.61929 8.61929 7.5 10 7.5C11.3807 7.5 12.5 8.61929 12.5 10C12.5 11.3807 11.3807 12.5 10 12.5Z" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M16.25 10C16.25 9.37868 16.6213 8.82534 17.1834 8.57666L17.5 8.4267C17.5 8.4267 17.9167 6.91667 17.0833 5.58333L16.8166 5.43334C16.2545 5.18466 15.8832 4.63132 15.8832 4.01L15.8832 3.75C15.8832 3.75 14.3732 2.91667 13.04 3.75L12.89 3.8166C12.2687 4.17869 11.4913 4.17869 10.87 3.8166L10.5733 3.64334C10.5733 3.64334 9.06333 2.80667 7.73 3.64L7.43 3.80666C6.80868 4.16876 6.03132 4.16876 5.41 3.80666L5.26 3.74C5.26 3.74 3.75 4.57333 3.75 5.90666L3.75 6.15666C3.75 6.77798 3.37868 7.33132 2.81666 7.58L2.5 7.73C2.5 7.73 1.66667 9.24 2.5 10.5733L2.66666 10.8733C3.02876 11.4946 3.02876 12.272 2.66666 12.8933L2.5 13.1933C2.5 13.1933 3.33333 14.7033 4.66667 14.8633L4.91667 14.8633C5.53799 14.8633 6.09132 15.2346 6.34 15.7967L6.49 16.11C6.49 16.11 7.99999 16.9433 9.33332 16.11L9.63332 15.9433C10.2546 15.5812 11.032 15.5812 11.6533 15.9433L11.9533 16.11C11.9533 16.11 13.4633 16.9433 14.7967 16.11L14.9633 15.8433C15.3254 15.222 15.3254 14.4446 15.9633 13.8233L16.1633 13.5733C16.1633 13.5733 16.9967 12.0633 16.1633 10.73L15.9967 10.43C15.6346 9.80868 15.6346 9.03132 15.9967 8.41L16.25 10Z" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+        Settings
+      </button>
+    </div>
+
+    <div class="supported-platforms">
+      <div class="platforms-label">Supported platforms:</div>
+      <div class="platforms-list">
+        <span class="platform-tag">ChatGPT</span>
+        <span class="platform-tag">Claude</span>
+        <span class="platform-tag">Gemini</span>
+        <span class="platform-tag">Grok</span>
+        <span class="platform-tag">Perplexity</span>
+      </div>
+    </div>
+
+    <div class="popup-footer">
+      <a href="https://github.com/yourusername/kayko" target="_blank" class="footer-link">GitHub</a>
+      <span class="version">v1.0.0</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
+

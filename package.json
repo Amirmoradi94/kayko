@@ -1,0 +1,23 @@
+{
+  "name": "kayko",
+  "version": "1.0.0",
+  "description": "Auto-save your LLM prompts locally. Never lose your carefully crafted prompts again.",
+  "scripts": {
+    "build-icons": "node build-icons.js",
+    "package": "npm run build-icons && node package-extension.js"
+  },
+  "keywords": [
+    "chrome-extension",
+    "prompt-saver",
+    "llm",
+    "chatgpt",
+    "claude",
+    "gemini"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "sharp": "^0.33.0"
+  }
+}
+
