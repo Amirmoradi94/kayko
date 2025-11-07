@@ -5,12 +5,54 @@ let filteredPrompts = [];
 let settings = {};
 let showFavoritesOnly = false;
 
+// Detect current platform from active tab
+async function detectCurrentPlatform() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab || !tab.url) return 'default';
+    
+    const url = tab.url.toLowerCase();
+    if (url.includes('chatgpt.com') || url.includes('openai.com')) return 'chatgpt';
+    if (url.includes('claude.ai') || url.includes('anthropic.com')) return 'claude';
+    if (url.includes('gemini.google.com')) return 'gemini';
+    if (url.includes('grok.com') || url.includes('x.ai')) return 'grok';
+    if (url.includes('perplexity.ai')) return 'perplexity';
+    
+    return 'default';
+  } catch (error) {
+    console.error('Error detecting platform:', error);
+    return 'default';
+  }
+}
+
+// Apply theme based on platform
+async function applyTheme() {
+  const platform = await detectCurrentPlatform();
+  
+  // Remove all theme classes
+  document.body.classList.remove('theme-chatgpt', 'theme-claude', 'theme-gemini', 'theme-grok', 'theme-perplexity');
+  
+  // Apply current theme
+  if (platform !== 'default') {
+    document.body.classList.add(`theme-${platform}`);
+  }
+}
+
 // Initialize
 async function init() {
+  await applyTheme();
   await loadData();
   setupEventListeners();
   renderPrompts();
   updateStorageInfo();
+  
+  // Re-apply theme when tab changes
+  chrome.tabs.onActivated.addListener(applyTheme);
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === 'complete') {
+      applyTheme();
+    }
+  });
 }
 
 // Load data from storage

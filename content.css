@@ -1,8 +1,8 @@
 /* Kayko Content Script Styles */
 
 .kayko-icon {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   cursor: pointer;
   background: white;
   border-radius: 50%;
@@ -10,31 +10,55 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   z-index: 10000;
+  border: 2px solid transparent;
+  opacity: 0.9;
 }
 
 .kayko-icon:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: scale(1.15);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+  opacity: 1;
 }
 
-.kayko-icon svg {
-  display: none;
-}
-
-.kayko-icon.idle .kayko-icon-idle {
+.kayko-icon img {
+  width: 24px;
+  height: 24px;
   display: block;
+  transition: all 0.3s ease;
 }
 
-.kayko-icon.saving .kayko-icon-saving {
-  display: block;
-  animation: kayko-spin 1s linear infinite;
+/* Idle state - gray/neutral */
+.kayko-icon.idle {
+  border-color: #9CA3AF;
+  opacity: 0.8;
 }
 
-.kayko-icon.saved .kayko-icon-saved {
-  display: block;
-  animation: kayko-checkmark 0.3s ease;
+.kayko-icon.idle img {
+  filter: grayscale(100%) opacity(0.7);
+}
+
+/* Saving state - blue pulsing */
+.kayko-icon.saving {
+  border-color: #3B82F6;
+  animation: kayko-pulse 1.5s ease-in-out infinite;
+}
+
+.kayko-icon.saving img {
+  filter: none;
+  animation: kayko-spin 2s linear infinite;
+}
+
+/* Saved state - green with checkmark effect */
+.kayko-icon.saved {
+  border-color: #10B981;
+  animation: kayko-success 0.6s ease;
+}
+
+.kayko-icon.saved img {
+  filter: none;
+  animation: kayko-checkmark 0.6s ease;
 }
 
 @keyframes kayko-spin {
@@ -43,6 +67,17 @@
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes kayko-pulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+    transform: scale(1.05);
   }
 }
 
@@ -57,6 +92,20 @@
   100% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+@keyframes kayko-success {
+  0% {
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.6);
+    transform: scale(1.1);
+  }
+  100% {
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+    transform: scale(1);
   }
 }
 

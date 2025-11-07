@@ -26,17 +26,27 @@ async function loadStats() {
 // Setup event listeners
 function setupEventListeners() {
   document.getElementById('openPanelBtn').addEventListener('click', async () => {
-    await chrome.sidePanel.open({ windowId: chrome.windows.WINDOW_ID_CURRENT });
-    window.close();
+    try {
+      const currentWindow = await chrome.windows.getCurrent();
+      await chrome.sidePanel.open({ windowId: currentWindow.id });
+      window.close();
+    } catch (error) {
+      console.error('Error opening side panel:', error);
+    }
   });
   
   document.getElementById('quickSettingsBtn').addEventListener('click', async () => {
-    await chrome.sidePanel.open({ windowId: chrome.windows.WINDOW_ID_CURRENT });
-    // Send message to open settings in side panel
-    setTimeout(() => {
-      chrome.runtime.sendMessage({ action: 'openSettings' });
-    }, 100);
-    window.close();
+    try {
+      const currentWindow = await chrome.windows.getCurrent();
+      await chrome.sidePanel.open({ windowId: currentWindow.id });
+      // Send message to open settings in side panel
+      setTimeout(() => {
+        chrome.runtime.sendMessage({ action: 'openSettings' });
+      }, 100);
+      window.close();
+    } catch (error) {
+      console.error('Error opening side panel:', error);
+    }
   });
 }
 

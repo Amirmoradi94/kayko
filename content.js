@@ -10,10 +10,10 @@
   // Detect current LLM platform
   function detectPlatform() {
     const hostname = window.location.hostname;
-    if (hostname.includes('openai.com')) return 'ChatGPT';
+    if (hostname.includes('openai.com') || hostname.includes('chatgpt.com')) return 'ChatGPT';
     if (hostname.includes('claude.ai') || hostname.includes('anthropic.com')) return 'Claude';
     if (hostname.includes('google.com') && (hostname.includes('gemini') || window.location.pathname.includes('gemini'))) return 'Gemini';
-    if (hostname.includes('x.ai')) return 'Grok';
+    if (hostname.includes('x.ai') || hostname.includes('grok.com')) return 'Grok';
     if (hostname.includes('perplexity.ai')) return 'Perplexity';
     return 'Unknown LLM';
   }
@@ -21,18 +21,11 @@
   // Create and inject the Kayko icon
   function createIcon(textarea) {
     const icon = document.createElement('div');
-    icon.className = 'kayko-icon';
-    icon.innerHTML = `
-      <svg class="kayko-icon-idle" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M10 2C5.58 2 2 5.58 2 10C2 14.42 5.58 18 10 18C14.42 18 18 14.42 18 10C18 5.58 14.42 2 10 2ZM8 14L4 10L5.41 8.59L8 11.17L14.59 4.58L16 6L8 14Z" fill="#9CA3AF"/>
-      </svg>
-      <svg class="kayko-icon-saving" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="10" cy="10" r="8" stroke="#3B82F6" stroke-width="2" fill="none" stroke-dasharray="5 3"/>
-      </svg>
-      <svg class="kayko-icon-saved" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M10 2C5.58 2 2 5.58 2 10C2 14.42 5.58 18 10 18C14.42 18 18 14.42 18 10C18 5.58 14.42 2 10 2ZM8 14L4 10L5.41 8.59L8 11.17L14.59 4.58L16 6L8 14Z" fill="#10B981"/>
-      </svg>
-    `;
+    icon.className = 'kayko-icon idle';
+    
+    // Use the extension icon
+    const iconUrl = chrome.runtime.getURL('icons/icon128.png');
+    icon.innerHTML = `<img src="${iconUrl}" alt="Kayko" />`;
     icon.title = 'Kayko - Click to view saved prompts';
     
     // Click handler to open side panel
@@ -44,15 +37,17 @@
     return icon;
   }
 
-  // Position the icon relative to textarea
+  // Position the icon relative to textarea (attached to top-right border, outside)
   function positionIcon(textarea, icon) {
     const rect = textarea.getBoundingClientRect();
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
     
     icon.style.position = 'absolute';
-    icon.style.top = `${rect.top + scrollTop + 8}px`;
-    icon.style.right = `${document.documentElement.clientWidth - (rect.right + scrollLeft) + 8}px`;
+    // Position at the top edge, slightly above the textarea
+    icon.style.top = `${rect.top + scrollTop - 16}px`; // 16px above (half the icon height)
+    // Position at the right edge
+    icon.style.left = `${rect.right + scrollLeft - 16}px`; // 16px from right edge (half icon width)
     icon.style.zIndex = '10000';
   }
 
@@ -113,6 +108,16 @@
     }
   }
 
+  // Get text from textarea or contenteditable element
+  function getTextContent(element) {
+    if (element.tagName === 'TEXTAREA') {
+      return element.value;
+    } else if (element.isContentEditable) {
+      return element.textContent || element.innerText || '';
+    }
+    return '';
+  }
+
   // Handle textarea input with debouncing
   function handleTextareaInput(textarea, icon) {
     // Clear existing timer
@@ -125,7 +130,8 @@
 
     // Set new timer
     const timer = setTimeout(async () => {
-      const success = await savePrompt(textarea, textarea.value);
+      const text = getTextContent(textarea);
+      const success = await savePrompt(textarea, text);
       if (success) {
         setIconState(icon, 'saved');
         setTimeout(() => setIconState(icon, 'idle'), 2000);
@@ -141,35 +147,74 @@
   function trackTextarea(textarea) {
     if (trackedTextareas.has(textarea)) return;
 
-    // Create and inject icon
-    const icon = createIcon(textarea);
-    document.body.appendChild(icon);
-    
-    // Position icon
-    positionIcon(textarea, icon);
-
-    // Store reference
-    trackedTextareas.set(textarea, { icon, textarea });
-
-    // Add input listener
-    textarea.addEventListener('input', () => handleTextareaInput(textarea, icon));
-
-    // Add focus listener to reposition icon
-    textarea.addEventListener('focus', () => positionIcon(textarea, icon));
-
-    // Reposition on scroll and resize
-    const repositionHandler = () => positionIcon(textarea, icon);
-    window.addEventListener('scroll', repositionHandler, true);
-    window.addEventListener('resize', repositionHandler);
-
-    // Hide icon when textarea is removed
-    const observer = new MutationObserver(() => {
-      if (!document.body.contains(textarea)) {
-        icon.remove();
-        observer.disconnect();
+    try {
+      // Create and inject icon
+      const icon = createIcon(textarea);
+      
+      // Safely append to body
+      if (document.body) {
+        document.body.appendChild(icon);
+      } else {
+        console.warn('Kayko: document.body not available');
+        return;
       }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
+      
+      // Position icon
+      positionIcon(textarea, icon);
+
+      // Store reference
+      trackedTextareas.set(textarea, { icon, textarea });
+
+      // Add input listeners (multiple events for better compatibility)
+      const inputHandler = () => {
+        try {
+          handleTextareaInput(textarea, icon);
+        } catch (error) {
+          console.error('Kayko: Error in input handler', error);
+        }
+      };
+      
+      textarea.addEventListener('input', inputHandler, { passive: true });
+      textarea.addEventListener('keyup', inputHandler, { passive: true });
+      textarea.addEventListener('paste', inputHandler, { passive: true });
+
+      // Add focus listener to reposition icon
+      textarea.addEventListener('focus', () => {
+        try {
+          positionIcon(textarea, icon);
+        } catch (error) {
+          console.error('Kayko: Error repositioning icon', error);
+        }
+      }, { passive: true });
+
+      // Reposition on scroll and resize
+      const repositionHandler = () => {
+        try {
+          positionIcon(textarea, icon);
+        } catch (error) {
+          // Silently fail on repositioning errors
+        }
+      };
+      window.addEventListener('scroll', repositionHandler, { passive: true, capture: true });
+      window.addEventListener('resize', repositionHandler, { passive: true });
+
+      // Hide icon when textarea is removed
+      const observer = new MutationObserver(() => {
+        try {
+          if (!document.body.contains(textarea)) {
+            icon.remove();
+            observer.disconnect();
+          }
+        } catch (error) {
+          console.error('Kayko: Error in mutation observer', error);
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      
+      console.log('Kayko: Tracking textarea', textarea);
+    } catch (error) {
+      console.error('Kayko: Failed to track textarea', error);
+    }
   }
 
   // Detect and track all textareas
@@ -178,32 +223,126 @@
     const textareas = document.querySelectorAll('textarea, [contenteditable="true"]');
     
     textareas.forEach(textarea => {
-      // Only track if it's large enough (likely a prompt input)
+      // Skip if already tracked
+      if (trackedTextareas.has(textarea)) return;
+      
+      // Get dimensions
       const rect = textarea.getBoundingClientRect();
-      if (rect.height > 40 || textarea.rows > 2) {
-        trackTextarea(textarea);
+      const hasRows = textarea.rows && textarea.rows > 1;
+      const isVisible = rect.width > 0 && rect.height > 0;
+      
+      // Check if it's a known chat UI framework
+      const className = textarea.className || '';
+      const isKnownChatUI = className.includes('ProseMirror') || 
+                           className.includes('tiptap') ||
+                           className.includes('contenteditable');
+      
+      // Track if it's likely a prompt input:
+      // - Has minimum height (20px for contenteditable, 30px for textarea) OR multiple rows
+      // - Is visible on screen
+      // - Has a reasonable width (not a tiny input)
+      // - OR is a known chat UI framework
+      const minHeight = textarea.isContentEditable ? 20 : 30;
+      const meetsSize = isVisible && rect.width > 100 && (rect.height > minHeight || hasRows || isKnownChatUI);
+      
+      if (meetsSize) {
+        console.log('Kayko: Detected textarea', {
+          element: textarea,
+          rect: rect,
+          tagName: textarea.tagName,
+          className: className,
+          contentEditable: textarea.isContentEditable,
+          isKnownChatUI: isKnownChatUI
+        });
+        try {
+          trackTextarea(textarea);
+        } catch (error) {
+          console.error('Kayko: Error tracking textarea', error);
+        }
       }
     });
   }
 
   // Initialize
   function init() {
-    // Initial detection
-    detectTextareas();
-
-    // Watch for dynamically added textareas
-    const observer = new MutationObserver(() => {
+    try {
+      console.log('Kayko: Content script initialized on', window.location.hostname);
+      
+      // Initial detection
       detectTextareas();
-    });
 
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
+      // Delayed detection for dynamically loaded content
+      setTimeout(() => {
+        try {
+          console.log('Kayko: Running delayed detection (500ms)');
+          detectTextareas();
+        } catch (error) {
+          console.error('Kayko: Error in delayed detection (500ms)', error);
+        }
+      }, 500);
+      
+      setTimeout(() => {
+        try {
+          console.log('Kayko: Running delayed detection (1s)');
+          detectTextareas();
+        } catch (error) {
+          console.error('Kayko: Error in delayed detection (1s)', error);
+        }
+      }, 1000);
+      
+      setTimeout(() => {
+        try {
+          console.log('Kayko: Running delayed detection (2s)');
+          detectTextareas();
+        } catch (error) {
+          console.error('Kayko: Error in delayed detection (2s)', error);
+        }
+      }, 2000);
+      
+      setTimeout(() => {
+        try {
+          console.log('Kayko: Running delayed detection (3s)');
+          detectTextareas();
+        } catch (error) {
+          console.error('Kayko: Error in delayed detection (3s)', error);
+        }
+      }, 3000);
 
-    // Periodic check for new textareas (some sites load them dynamically)
-    setInterval(detectTextareas, 2000);
+      // Watch for dynamically added textareas (less aggressive to avoid conflicts)
+      if (document.body) {
+        const observer = new MutationObserver(() => {
+          try {
+            detectTextareas();
+          } catch (error) {
+            // Silently fail to avoid breaking the page
+          }
+        });
+
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+      }
+
+      // Periodic check for new textareas (some sites load them dynamically)
+      setInterval(() => {
+        try {
+          detectTextareas();
+        } catch (error) {
+          // Silently fail
+        }
+      }, 3000); // Changed from 2s to 3s to be less aggressive
+    } catch (error) {
+      console.error('Kayko: Failed to initialize', error);
+    }
   }
+
+  // Expose manual trigger for debugging
+  window.kaykoDetect = function() {
+    console.log('Kayko: Manual detection triggered');
+    detectTextareas();
+    console.log('Kayko: Currently tracking', trackedTextareas, 'textareas');
+  };
 
   // Start when DOM is ready
   if (document.readyState === 'loading') {

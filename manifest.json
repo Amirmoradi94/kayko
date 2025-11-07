@@ -6,15 +6,18 @@
   "permissions": [
     "storage",
     "activeTab",
-    "sidePanel"
+    "sidePanel",
+    "tabs"
   ],
   "host_permissions": [
     "*://*.openai.com/*",
+    "*://*.chatgpt.com/*",
     "*://*.anthropic.com/*",
     "*://*.claude.ai/*",
     "*://*.google.com/*",
     "*://gemini.google.com/*",
     "*://*.x.ai/*",
+    "*://*.grok.com/*",
     "*://*.perplexity.ai/*",
     "*://chat.openai.com/*"
   ],
@@ -25,11 +28,13 @@
     {
       "matches": [
         "*://*.openai.com/*",
+        "*://*.chatgpt.com/*",
         "*://*.anthropic.com/*",
         "*://*.claude.ai/*",
         "*://*.google.com/*",
         "*://gemini.google.com/*",
         "*://*.x.ai/*",
+        "*://*.grok.com/*",
         "*://*.perplexity.ai/*",
         "*://chat.openai.com/*",
         "*://*/*"
@@ -56,6 +61,12 @@
     "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/icon128.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
 
