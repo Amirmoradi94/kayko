@@ -2,6 +2,10 @@
 (function() {
   'use strict';
 
+  // Version check - helps identify if old cached code is running
+  const KAYKO_VERSION = '1.0.1';
+  console.log('Kayko: Content script v' + KAYKO_VERSION + ' loaded');
+
   const DEBOUNCE_DELAY = 3000; // 3 seconds
   const ICON_SIZE = 24;
   const trackedTextareas = new WeakMap();
@@ -20,16 +24,106 @@
   }
 
   // Safely get extension URL with error handling
+  let extensionContextWarningShown = false; // Track if we've already warned
+  let extensionContextValid = true; // Track if extension context is valid
+  
   function getExtensionURL(path) {
+    // If we know context is invalid, return empty immediately
+    if (!extensionContextValid) {
+      return '';
+    }
+    
     try {
       if (chrome.runtime && chrome.runtime.getURL) {
-        return chrome.runtime.getURL(path);
+        const url = chrome.runtime.getURL(path);
+        return url;
+      } else {
+        extensionContextValid = false;
       }
     } catch (error) {
-      console.warn('Kayko: Extension context invalidated, using fallback');
+      extensionContextValid = false;
+      // Only show warning once per page load to avoid spam
+      if (!extensionContextWarningShown) {
+        console.warn('Kayko: Extension context invalidated. Please refresh this page (F5) to restore functionality.');
+        // Show user-friendly notification
+        showExtensionContextNotification();
+        extensionContextWarningShown = true;
+      }
     }
-    // Fallback: return a data URI or empty string
+    // Fallback: return empty string (caller should handle this)
     return '';
+  }
+  
+  // Show a user-friendly notification about extension context
+  function showExtensionContextNotification() {
+    try {
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #F59E0B;
+        color: white;
+        padding: 16px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 999999;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        max-width: 350px;
+        animation: slideInRight 0.3s ease;
+      `;
+      notification.innerHTML = `
+        <div style="font-weight: 600; margin-bottom: 8px;">⚠️ Kayko Extension</div>
+        <div style="margin-bottom: 12px;">Extension was reloaded. Please refresh this page (F5) to restore full functionality.</div>
+        <button id="kayko-refresh-btn" style="
+          background: white;
+          color: #F59E0B;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-weight: 600;
+          cursor: pointer;
+          font-size: 13px;
+        ">Refresh Page</button>
+      `;
+      
+      // Add animation
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      document.body.appendChild(notification);
+      
+      // Add refresh button handler
+      const refreshBtn = notification.querySelector('#kayko-refresh-btn');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+          window.location.reload();
+        });
+      }
+      
+      // Auto-hide after 10 seconds
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.style.animation = 'slideInRight 0.3s ease reverse';
+          setTimeout(() => notification.remove(), 300);
+        }
+      }, 10000);
+    } catch (error) {
+      // Silently fail if we can't show notification
+    }
   }
 
   // Create and inject the Kayko icon
@@ -90,32 +184,66 @@
 
   // Update icon state
   function setIconState(icon, state) {
-    icon.classList.remove('idle', 'saving', 'saved');
-    icon.classList.add(state);
-    
-    // Get the img element
-    const img = icon.querySelector('.kayko-icon-img');
-    if (!img) return;
-    
-    // Change icon image based on state - using custom icons
-    let iconPath = '';
-    if (state === 'idle') {
-      // Idle state - custom idle icon
-      iconPath = 'icons/idle-icon.png';
-    } else if (state === 'saving') {
-      // Saving state - custom saving icon
-      iconPath = 'icons/saving-icon.png';
-    } else if (state === 'saved') {
-      // Saved state - back to idle icon but with green tint via CSS
-      iconPath = 'icons/idle-icon.png';
-    }
-    
-    // Safely set the icon source
-    if (iconPath) {
-      const iconUrl = getExtensionURL(iconPath);
-      if (iconUrl) {
-        img.src = iconUrl;
+    try {
+      icon.classList.remove('idle', 'saving', 'saved');
+      icon.classList.add(state);
+      
+      // Get the img element
+      let img = icon.querySelector('.kayko-icon-img');
+      if (!img) {
+        console.warn('Kayko: Image element not found in icon');
+        return;
       }
+      
+      // Change icon image based on state - using custom icons
+      let iconPath = '';
+      if (state === 'idle') {
+        // Idle state - custom idle icon
+        iconPath = 'icons/idle-icon.png';
+      } else if (state === 'saving') {
+        // Saving state - custom saving icon
+        iconPath = 'icons/saving-icon.png';
+      } else if (state === 'saved') {
+        // Saved state - back to idle icon but with green tint via CSS
+        iconPath = 'icons/idle-icon.png';
+      }
+      
+      // Safely set the icon source
+      if (iconPath) {
+        const iconUrl = getExtensionURL(iconPath);
+        if (!iconUrl) {
+          // Extension context invalidated - skip icon change but keep CSS state
+          // Don't log warning here as getExtensionURL already logged it once
+          return;
+        }
+        
+        // For ChatGPT, force complete image replacement to prevent overlap
+        const isChatGPT = window.location.hostname.includes('chatgpt.com') || window.location.hostname.includes('openai.com');
+        
+        if (isChatGPT && state === 'saving') {
+          // Remove old image completely and create new one
+          img.remove();
+          img = document.createElement('img');
+          img.alt = 'Kayko';
+          img.className = 'kayko-icon-img';
+          img.src = iconUrl + '?t=' + Date.now(); // Always use cache buster for saving
+          icon.appendChild(img);
+        } else {
+          // For other states or platforms, just update src
+          // Clear the image first to force reload
+          img.src = '';
+          // Small delay to ensure old image is cleared
+          setTimeout(() => {
+            if (img && img.parentNode) { // Check if img still exists
+              img.src = iconUrl + (state === 'saving' ? '?t=' + Date.now() : '');
+            }
+          }, 10);
+        }
+        
+        console.log('Kayko: Icon state changed to', state, 'using', iconPath);
+      }
+    } catch (error) {
+      console.error('Kayko: Error setting icon state', error);
     }
   }
 
@@ -133,20 +261,26 @@
     };
 
     try {
+      // Check if chrome.storage is available
+      if (!chrome || !chrome.storage || !chrome.storage.local) {
+        console.warn('Kayko: chrome.storage is not available');
+        return false;
+      }
+
       const result = await chrome.storage.local.get(['prompts', 'settings']);
       const prompts = result.prompts || [];
       const settings = result.settings || { maxPrompts: 100, excludedSites: [] };
 
       // Check if site is excluded
-      if (settings.excludedSites.some(site => window.location.hostname.includes(site))) {
-        return;
+      if (settings.excludedSites && settings.excludedSites.some(site => window.location.hostname.includes(site))) {
+        return false;
       }
 
       // Check if this is a duplicate of the last prompt
       if (prompts.length > 0) {
         const lastPrompt = prompts[0];
         if (lastPrompt.text === text && lastPrompt.platform === prompt.platform) {
-          return; // Don't save duplicate
+          return false; // Don't save duplicate
         }
       }
 
@@ -162,7 +296,9 @@
       
       // Update badge count
       try {
-        chrome.runtime.sendMessage({ action: 'updateBadge' });
+        if (chrome.runtime && chrome.runtime.sendMessage) {
+          chrome.runtime.sendMessage({ action: 'updateBadge' });
+        }
       } catch (error) {
         // Extension context might be invalidated, ignore silently
       }
@@ -172,6 +308,8 @@
       // Check if it's an extension context error
       if (error.message && error.message.includes('Extension context invalidated')) {
         console.warn('Kayko: Extension was reloaded. Please refresh the page.');
+      } else if (error.message && error.message.includes('Cannot read properties')) {
+        console.warn('Kayko: Extension context invalidated. Please refresh the page.');
       } else {
         console.error('Kayko: Error saving prompt', error);
       }
@@ -219,16 +357,26 @@
     try {
       // Ensure trackedIcons is a Set
       if (!trackedIcons || typeof trackedIcons.has !== 'function') {
-        console.warn('Kayko: trackedIcons is not properly initialized');
+        // If trackedIcons is not a Set, recreate it
+        if (typeof Set !== 'undefined') {
+          // Can't recreate it here as it's const, but we can skip cleanup
+          console.warn('Kayko: trackedIcons is not properly initialized, skipping cleanup');
+        }
         return;
       }
       
       const existingIcons = document.querySelectorAll('.kayko-icon');
+      if (!existingIcons || existingIcons.length === 0) return;
+      
       existingIcons.forEach(icon => {
-        // Check if this icon is still tracked using our Set
-        if (!trackedIcons.has(icon)) {
-          // Remove if not tracked
-          icon.remove();
+        try {
+          // Check if this icon is still tracked using our Set
+          if (!trackedIcons.has(icon)) {
+            // Remove if not tracked
+            icon.remove();
+          }
+        } catch (error) {
+          // Silently skip if there's an error with this icon
         }
       });
     } catch (error) {
@@ -472,7 +620,7 @@
   window.kaykoDetect = function() {
     console.log('Kayko: Manual detection triggered');
     detectTextareas();
-    console.log('Kayko: Currently tracking', trackedTextareas, 'textareas');
+    console.log('Kayko: Currently tracking', trackedIcons.size, 'icons');
   };
 
   // Start when DOM is ready
