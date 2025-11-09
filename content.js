@@ -187,11 +187,25 @@
     
     // For ChatGPT, position on the right side (outside the textarea)
     const isChatGPT = window.location.hostname.includes('chatgpt.com') || window.location.hostname.includes('openai.com');
+    const isPerplexity = window.location.hostname.includes('perplexity.ai');
+    const isClaude = window.location.hostname.includes('claude.ai') || window.location.hostname.includes('anthropic.com');
     
     if (isChatGPT) {
       // Position on the right side, vertically centered
       icon.style.top = `${rect.top + scrollTop + (rect.height / 2) - 85}px`; // Vertically centered (half of 56px)
       icon.style.left = `${rect.right + scrollLeft + 15}px`; // 25px to the right of textarea
+    } else if (isPerplexity) {
+      // For Perplexity, position relative to top border of textarea
+      icon.style.top = `${rect.top + scrollTop - 43}px`; // Relative to top border
+      icon.style.left = `${rect.right + scrollLeft - 50}px`; // 50px from right edge
+    } else if (isClaude) {
+      // For Claude, position higher than default
+      icon.style.top = `${rect.top + scrollTop - 63}px`; // 40px above (higher than default 28px)
+      icon.style.left = `${rect.right + scrollLeft - 50}px`; // 28px from right edge (half icon width)
+    } else if (isGemini) {
+      // For Gemini, position higher than default
+      icon.style.top = `${rect.top + scrollTop - 63}px`; // 40px above (higher than default 28px)
+      icon.style.left = `${rect.right + scrollLeft - 50}px`; // 28px from right edge (half icon width)
     } else {
       // For other platforms, keep top-right position
       icon.style.top = `${rect.top + scrollTop - 28}px`; // 28px above (half the icon height)
