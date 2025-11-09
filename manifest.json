@@ -19,7 +19,8 @@
     "*://*.x.ai/*",
     "*://*.grok.com/*",
     "*://*.perplexity.ai/*",
-    "*://chat.openai.com/*"
+    "*://chat.openai.com/*",
+    "*://api.openai.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -45,7 +46,6 @@
     }
   ],
   "action": {
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

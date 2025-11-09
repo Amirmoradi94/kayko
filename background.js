@@ -67,3 +67,19 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   }
 });
 
+// Handle extension icon click - open side panel
+chrome.action.onClicked.addListener(async (tab) => {
+  try {
+    await chrome.sidePanel.open({ windowId: tab.windowId });
+  } catch (error) {
+    console.error('Error opening side panel:', error);
+    // Fallback: try to open in current window
+    try {
+      const window = await chrome.windows.get(tab.windowId);
+      await chrome.sidePanel.open({ windowId: window.id });
+    } catch (fallbackError) {
+      console.error('Fallback error:', fallbackError);
+    }
+  }
+});
+

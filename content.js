@@ -189,6 +189,7 @@
     const isChatGPT = window.location.hostname.includes('chatgpt.com') || window.location.hostname.includes('openai.com');
     const isPerplexity = window.location.hostname.includes('perplexity.ai');
     const isClaude = window.location.hostname.includes('claude.ai') || window.location.hostname.includes('anthropic.com');
+    const isGemini = (window.location.hostname.includes('google.com') && (window.location.hostname.includes('gemini') || window.location.pathname.includes('gemini'))) || window.location.hostname.includes('gemini.google.com');
     
     if (isChatGPT) {
       // Position on the right side, vertically centered
@@ -204,7 +205,7 @@
       icon.style.left = `${rect.right + scrollLeft - 50}px`; // 28px from right edge (half icon width)
     } else if (isGemini) {
       // For Gemini, position higher than default
-      icon.style.top = `${rect.top + scrollTop - 63}px`; // 40px above (higher than default 28px)
+      icon.style.top = `${rect.top + scrollTop - 53}px`; // 40px above (higher than default 28px)
       icon.style.left = `${rect.right + scrollLeft - 50}px`; // 28px from right edge (half icon width)
     } else {
       // For other platforms, keep top-right position
@@ -336,17 +337,51 @@
         }
       }
 
-      // Check if new prompt contains an existing prompt from the same platform as a substring
+      // Check if new prompt covers at least 80% of an existing prompt from the same platform
       // If found, update that existing prompt instead of creating a new one
       const currentPlatform = prompt.platform;
       let foundExistingPrompt = false;
+      
+      // Helper function to calculate coverage percentage
+      function calculateCoverage(newText, existingText) {
+        // If new text contains the entire existing text, coverage is 100%
+        if (newText.includes(existingText)) {
+          return 100;
+        }
+        
+        // Calculate coverage based on longest common substring
+        const existingLen = existingText.length;
+        if (existingLen === 0) return 0;
+        
+        // Find the longest substring of existing text that appears in new text
+        let maxMatchLength = 0;
+        for (let i = 0; i < existingLen; i++) {
+          for (let j = i + 1; j <= existingLen; j++) {
+            const substring = existingText.substring(i, j);
+            if (newText.includes(substring)) {
+              maxMatchLength = Math.max(maxMatchLength, substring.length);
+            }
+          }
+        }
+        
+        // Return coverage percentage
+        return (maxMatchLength / existingLen) * 100;
+      }
       
       for (let i = 0; i < prompts.length; i++) {
         const existingPrompt = prompts[i];
         // Only check prompts from the same platform
         if (existingPrompt.platform === currentPlatform) {
-          // Check if the existing prompt text is an exact substring of the new prompt
-          if (text.includes(existingPrompt.text) && text !== existingPrompt.text) {
+          // Skip if texts are identical (already handled by duplicate check)
+          if (text === existingPrompt.text) {
+            continue;
+          }
+          
+          // Calculate coverage percentage
+          const coverage = calculateCoverage(text, existingPrompt.text);
+          
+          // If new prompt covers at least 80% of existing prompt, update it
+          if (coverage >= 80) {
             // Update the existing prompt with the new text
             existingPrompt.text = text;
             existingPrompt.timestamp = prompt.timestamp;
