@@ -65,6 +65,21 @@ body.theme-gemini {
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
 }
 
+/* Google AI Studio Theme - Dark with Purple/Blue Accent */
+body.theme-aistudio {
+  --primary-color: #8B5CF6;
+  --success-color: #34A853;
+  --danger-color: #EA4335;
+  --text-primary: #E8EAED;
+  --text-secondary: #9AA0A6;
+  --bg-primary: #202124;
+  --bg-secondary: #292A2D;
+  --border-color: #3C4043;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
 /* Grok Theme - Pure Black with White/Gray */
 body.theme-grok {
   --primary-color: #FFFFFF;
@@ -155,6 +170,14 @@ body {
   transition: color 0.3s ease;
 }
 
+/* Kayko Logo */
+.kayko-logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
 /* Platform-specific header styling */
 body.theme-grok .sidepanel-header h1 {
   font-weight: 600;
@@ -189,6 +212,16 @@ body.theme-claude .sidepanel-header h1 {
 .icon-btn.active {
   background: var(--primary-color);
   color: white;
+}
+
+/* Favorites filter button - gold star */
+#favoritesFilter svg path {
+  stroke: #FCD34D;
+}
+
+#favoritesFilter.active svg path {
+  stroke: #F59E0B;
+  fill: #F59E0B;
 }
 
 .icon-btn.enhance-btn {
@@ -398,6 +431,7 @@ body.theme-claude .sidepanel-header h1 {
 .platform-badge.ChatGPT { background: #10A37F20; color: #10A37F; }
 .platform-badge.Claude { background: #D4963820; color: #D49638; }
 .platform-badge.Gemini { background: #4285F420; color: #4285F4; }
+.platform-badge.Google-AI-Studio { background: #8B5CF620; color: #8B5CF6; }
 .platform-badge.Grok { background: #000000; color: #FFFFFF; }
 .platform-badge.Perplexity { background: #20808D20; color: #20808D; }
 
@@ -499,6 +533,10 @@ body.theme-claude .btn-sm.primary:hover {
 
 body.theme-gemini .btn-sm.primary:hover {
   background: #1A73E8;
+}
+
+body.theme-aistudio .btn-sm.primary:hover {
+  background: #7C3AED;
 }
 
 body.theme-grok .btn-sm.primary {

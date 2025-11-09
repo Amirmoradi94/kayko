@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Kayko - Prompt Auto-Save & Recovery",
+  "name": "Chat with peace of mind, I've got your back",
   "version": "1.0.0",
   "description": "Auto-save your LLM prompts locally. Never lose your carefully crafted prompts again - works on ChatGPT, Claude, Gemini, and more.",
   "permissions": [
@@ -16,6 +16,7 @@
     "*://*.claude.ai/*",
     "*://*.google.com/*",
     "*://gemini.google.com/*",
+    "*://aistudio.google.com/*",
     "*://*.x.ai/*",
     "*://*.grok.com/*",
     "*://*.perplexity.ai/*",
@@ -34,6 +35,7 @@
         "*://*.claude.ai/*",
         "*://*.google.com/*",
         "*://gemini.google.com/*",
+        "*://aistudio.google.com/*",
         "*://*.x.ai/*",
         "*://*.grok.com/*",
         "*://*.perplexity.ai/*",

@@ -11,12 +11,16 @@
   const trackedTextareas = new WeakMap();
   const trackedIcons = new Set(); // Track icons separately since WeakMap can't be iterated
   let debounceTimers = new WeakMap();
+  const positionUpdateTimers = new WeakMap(); // Debounce position updates
 
   // Detect current LLM platform
   function detectPlatform() {
     const hostname = window.location.hostname;
     if (hostname.includes('openai.com') || hostname.includes('chatgpt.com')) return 'ChatGPT';
     if (hostname.includes('claude.ai') || hostname.includes('anthropic.com')) return 'Claude';
+    // Google AI Studio and Gemini are separate platforms
+    if (hostname.includes('aistudio.google.com') || hostname === 'aistudio.google.com') return 'Google AI Studio';
+    if (hostname.includes('gemini.google.com') || hostname === 'gemini.google.com') return 'Gemini';
     if (hostname.includes('google.com') && (hostname.includes('gemini') || window.location.pathname.includes('gemini'))) return 'Gemini';
     if (hostname.includes('x.ai') || hostname.includes('grok.com')) return 'Grok';
     if (hostname.includes('perplexity.ai')) return 'Perplexity';
@@ -189,7 +193,10 @@
     const isChatGPT = window.location.hostname.includes('chatgpt.com') || window.location.hostname.includes('openai.com');
     const isPerplexity = window.location.hostname.includes('perplexity.ai');
     const isClaude = window.location.hostname.includes('claude.ai') || window.location.hostname.includes('anthropic.com');
-    const isGemini = (window.location.hostname.includes('google.com') && (window.location.hostname.includes('gemini') || window.location.pathname.includes('gemini'))) || window.location.hostname.includes('gemini.google.com');
+    // Google AI Studio and Gemini are separate platforms
+    const isAIStudio = window.location.hostname.includes('aistudio.google.com');
+    const isGemini = window.location.hostname.includes('gemini.google.com') ||
+                     (window.location.hostname.includes('google.com') && (window.location.hostname.includes('gemini') || window.location.pathname.includes('gemini')));
     
     if (isChatGPT) {
       // Position on the right side, vertically centered
@@ -197,15 +204,15 @@
       icon.style.left = `${rect.right + scrollLeft + 15}px`; // 25px to the right of textarea
     } else if (isPerplexity) {
       // For Perplexity, position relative to top border of textarea
-      icon.style.top = `${rect.top + scrollTop - 43}px`; // Relative to top border
+      icon.style.top = `${rect.top + scrollTop - 60}px`; // Relative to top border
       icon.style.left = `${rect.right + scrollLeft - 50}px`; // 50px from right edge
     } else if (isClaude) {
       // For Claude, position higher than default
       icon.style.top = `${rect.top + scrollTop - 63}px`; // 40px above (higher than default 28px)
       icon.style.left = `${rect.right + scrollLeft - 50}px`; // 28px from right edge (half icon width)
-    } else if (isGemini) {
-      // For Gemini, position higher than default
-      icon.style.top = `${rect.top + scrollTop - 53}px`; // 40px above (higher than default 28px)
+    } else if (isAIStudio || isGemini) {
+      // For Google AI Studio and Gemini, position higher than default
+      icon.style.top = `${rect.top + scrollTop - 66}px`; // 40px above (higher than default 28px)
       icon.style.left = `${rect.right + scrollLeft - 50}px`; // 28px from right edge (half icon width)
     } else {
       // For other platforms, keep top-right position
@@ -512,6 +519,7 @@
       const existing = trackedTextareas.get(textarea);
       if (existing && existing.icon && document.body.contains(existing.icon)) {
         try {
+          // Always reposition when detected again (handles position changes)
           positionIcon(textarea, existing.icon);
           // For ChatGPT, ensure only one image exists in the icon
           const isChatGPT = window.location.hostname.includes('chatgpt.com') || window.location.hostname.includes('openai.com');
@@ -593,22 +601,133 @@
       window.addEventListener('scroll', repositionHandler, { passive: true, capture: true });
       window.addEventListener('resize', repositionHandler, { passive: true });
 
-      // Hide icon when textarea is removed
-      const observer = new MutationObserver(() => {
+      // Use ResizeObserver to watch for textarea position/size changes
+      // This catches when the textarea moves due to layout changes
+      let resizeObserver = null;
+      if (typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver(() => {
+          try {
+            if (document.body.contains(textarea) && document.body.contains(icon)) {
+              // Debounce resize observer updates
+              if (positionUpdateTimers.has(icon)) {
+                clearTimeout(positionUpdateTimers.get(icon));
+              }
+              
+              const timer = setTimeout(() => {
+                requestAnimationFrame(() => {
+                  try {
+                    if (document.body.contains(textarea) && document.body.contains(icon)) {
+                      positionIcon(textarea, icon);
+                    }
+                  } catch (error) {
+                    // Silently fail
+                  }
+                });
+                positionUpdateTimers.delete(icon);
+              }, 50); // 50ms debounce for resize updates (faster than mutation)
+              
+              positionUpdateTimers.set(icon, timer);
+            }
+          } catch (error) {
+            // Silently fail on repositioning errors
+          }
+        });
+        resizeObserver.observe(textarea);
+        
+        // Also observe parent elements that might affect position
+        let parent = textarea.parentElement;
+        let depth = 0;
+        while (parent && depth < 5 && parent !== document.body) {
+          resizeObserver.observe(parent);
+          parent = parent.parentElement;
+          depth++;
+        }
+      }
+
+      // Use MutationObserver to watch for DOM changes that might affect textarea position
+      // This catches when new messages are added, layout shifts occur, etc.
+      const mutationObserver = new MutationObserver((mutations) => {
         try {
           if (!document.body.contains(textarea)) {
-            // Remove from tracking Set (with safety check)
+            // Textarea was removed
             if (trackedIcons && typeof trackedIcons.delete === 'function') {
               trackedIcons.delete(icon);
             }
+            if (resizeObserver) {
+              resizeObserver.disconnect();
+            }
+            // Clean up position update timer
+            if (positionUpdateTimers.has(icon)) {
+              clearTimeout(positionUpdateTimers.get(icon));
+              positionUpdateTimers.delete(icon);
+            }
+            mutationObserver.disconnect();
             icon.remove();
-            observer.disconnect();
+            return;
+          }
+          
+          // Check if any mutations might affect layout
+          let shouldReposition = false;
+          for (const mutation of mutations) {
+            // If nodes were added/removed or attributes changed, reposition
+            if (mutation.type === 'childList' || mutation.type === 'attributes') {
+              // Check if mutation is near the textarea or its ancestors
+              let target = mutation.target;
+              let checkDepth = 0;
+              while (target && checkDepth < 10) {
+                if (target === textarea || target.contains(textarea)) {
+                  shouldReposition = true;
+                  break;
+                }
+                target = target.parentElement;
+                checkDepth++;
+              }
+              if (shouldReposition) break;
+            }
+          }
+          
+          if (shouldReposition && document.body.contains(textarea) && document.body.contains(icon)) {
+            // Debounce position updates to avoid excessive repositioning
+            if (positionUpdateTimers.has(icon)) {
+              clearTimeout(positionUpdateTimers.get(icon));
+            }
+            
+            const timer = setTimeout(() => {
+              // Use requestAnimationFrame to batch position updates
+              requestAnimationFrame(() => {
+                try {
+                  if (document.body.contains(textarea) && document.body.contains(icon)) {
+                    positionIcon(textarea, icon);
+                  }
+                } catch (error) {
+                  // Silently fail
+                }
+              });
+              positionUpdateTimers.delete(icon);
+            }, 100); // 100ms debounce for position updates
+            
+            positionUpdateTimers.set(icon, timer);
           }
         } catch (error) {
           console.error('Kayko: Error in mutation observer', error);
         }
       });
-      observer.observe(document.body, { childList: true, subtree: true });
+      
+      // Observe the document body for changes that might affect layout
+      mutationObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class'] // Watch for style/class changes that affect layout
+      });
+
+      // Store observers for cleanup
+      trackedTextareas.set(textarea, { 
+        icon, 
+        textarea, 
+        resizeObserver, 
+        mutationObserver 
+      });
       
       console.log('Kayko: Tracking textarea', textarea);
     } catch (error) {
@@ -619,11 +738,24 @@
   // Detect and track all textareas
   function detectTextareas() {
     // Find all textareas and contenteditable elements
-    const textareas = document.querySelectorAll('textarea, [contenteditable="true"]');
+    // Note: [contenteditable] matches all elements with the attribute (regardless of value)
+    // We'll filter out contenteditable="false" elements below
+    const textareas = document.querySelectorAll('textarea, [contenteditable]');
     
     textareas.forEach(textarea => {
       // Skip if already tracked
       if (trackedTextareas.has(textarea)) return;
+      
+      // Check if element is actually contenteditable (some sites use contenteditable="false")
+      const isContentEditable = textarea.isContentEditable || 
+                                 textarea.getAttribute('contenteditable') === 'true' ||
+                                 textarea.getAttribute('contenteditable') === '' ||
+                                 textarea.hasAttribute('contenteditable');
+      
+      // Skip if contenteditable is explicitly false
+      if (textarea.hasAttribute('contenteditable') && textarea.getAttribute('contenteditable') === 'false') {
+        return;
+      }
       
       // Get dimensions
       const rect = textarea.getBoundingClientRect();
@@ -632,25 +764,51 @@
       
       // Check if it's a known chat UI framework
       const className = textarea.className || '';
+      const id = textarea.id || '';
+      const placeholder = textarea.placeholder || textarea.getAttribute('placeholder') || '';
       const isKnownChatUI = className.includes('ProseMirror') || 
                            className.includes('tiptap') ||
-                           className.includes('contenteditable');
+                           className.includes('contenteditable') ||
+                           className.includes('prompt') ||
+                           className.includes('input') ||
+                           className.includes('chat') ||
+                           id.includes('prompt') ||
+                           id.includes('input') ||
+                           id.includes('chat') ||
+                           placeholder.toLowerCase().includes('prompt') ||
+                           placeholder.toLowerCase().includes('message');
+      
+      // Google AI Studio specific detection - check for Google AI Studio patterns
+      const isAIStudio = window.location.hostname.includes('aistudio.google.com');
+      const isAIStudioInput = isAIStudio && (
+        className.includes('mat') || // Material Design classes common in Google apps
+        className.includes('input') ||
+        id.includes('input') ||
+        textarea.getAttribute('role') === 'textbox' ||
+        textarea.getAttribute('aria-label')?.toLowerCase().includes('prompt') ||
+        textarea.getAttribute('aria-label')?.toLowerCase().includes('message')
+      );
       
       // Track if it's likely a prompt input:
       // - Has minimum height (20px for contenteditable, 30px for textarea) OR multiple rows
       // - Is visible on screen
       // - Has a reasonable width (not a tiny input)
       // - OR is a known chat UI framework
-      const minHeight = textarea.isContentEditable ? 20 : 30;
+      const minHeight = isContentEditable ? 20 : 30;
       const meetsSize = isVisible && rect.width > 100 && (rect.height > minHeight || hasRows || isKnownChatUI);
       
-      if (meetsSize) {
+      // Google AI Studio specific: be more lenient with size requirements if it matches Google AI Studio patterns
+      const meetsAIStudioSize = isAIStudioInput && isVisible && rect.width > 50 && rect.height > 15;
+      
+      if (meetsSize || meetsAIStudioSize) {
         console.log('Kayko: Detected textarea', {
           element: textarea,
           rect: rect,
           tagName: textarea.tagName,
           className: className,
-          contentEditable: textarea.isContentEditable,
+          id: id,
+          contentEditable: isContentEditable,
+          contentEditableAttr: textarea.getAttribute('contenteditable'),
           isKnownChatUI: isKnownChatUI
         });
         try {

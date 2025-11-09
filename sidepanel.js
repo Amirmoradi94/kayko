@@ -15,6 +15,7 @@ async function detectCurrentPlatform() {
     const url = tab.url.toLowerCase();
     if (url.includes('chatgpt.com') || url.includes('openai.com')) return 'chatgpt';
     if (url.includes('claude.ai') || url.includes('anthropic.com')) return 'claude';
+    if (url.includes('aistudio.google.com')) return 'aistudio';
     if (url.includes('gemini.google.com')) return 'gemini';
     if (url.includes('grok.com') || url.includes('x.ai')) return 'grok';
     if (url.includes('perplexity.ai')) return 'perplexity';
@@ -31,7 +32,7 @@ async function applyTheme() {
   const platform = await detectCurrentPlatform();
   
   // Remove all theme classes
-  document.body.classList.remove('theme-chatgpt', 'theme-claude', 'theme-gemini', 'theme-grok', 'theme-perplexity');
+  document.body.classList.remove('theme-chatgpt', 'theme-claude', 'theme-gemini', 'theme-grok', 'theme-perplexity', 'theme-aistudio');
   
   // Apply current theme
   if (platform !== 'default') {
@@ -221,7 +222,7 @@ function createPromptElement(prompt) {
     <div class="prompt-header">
       <div class="prompt-meta">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span class="platform-badge ${prompt.platform}">${prompt.platform}</span>
+          <span class="platform-badge ${prompt.platform.replace(/\s+/g, '-')}">${prompt.platform}</span>
           <span class="prompt-timestamp">${timeAgo}</span>
         </div>
       </div>
@@ -234,7 +235,7 @@ function createPromptElement(prompt) {
         <input type="checkbox" class="prompt-checkbox" data-id="${prompt.id}" ${isSelected ? 'checked' : ''}>
         <button class="icon-btn favorite-btn" data-id="${prompt.id}" title="${prompt.favorite ? 'Unfavorite' : 'Favorite'}">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="${prompt.favorite ? '#F59E0B' : 'none'}" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8 2L10.163 6.403L15 7.095L11.5 10.507L12.326 15.323L8 13.045L3.674 15.323L4.5 10.507L1 7.095L5.837 6.403L8 2Z" stroke="${prompt.favorite ? '#F59E0B' : 'currentColor'}" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M8 2L10.163 6.403L15 7.095L11.5 10.507L12.326 15.323L8 13.045L3.674 15.323L4.5 10.507L1 7.095L5.837 6.403L8 2Z" stroke="${prompt.favorite ? '#F59E0B' : '#FCD34D'}" stroke-width="1.5" stroke-linejoin="round"/>
           </svg>
         </button>
       </div>
