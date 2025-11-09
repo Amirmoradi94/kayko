@@ -33,25 +33,30 @@
       return '';
     }
     
-    try {
-      if (chrome.runtime && chrome.runtime.getURL) {
-        const url = chrome.runtime.getURL(path);
-        return url;
-      } else {
-        extensionContextValid = false;
+    // Check if chrome.runtime exists before trying to use it
+    if (typeof chrome === 'undefined' || !chrome.runtime || typeof chrome.runtime.getURL !== 'function') {
+      extensionContextValid = false;
+      if (!extensionContextWarningShown) {
+        console.warn('Kayko: Extension context invalidated. Please refresh this page (F5) to restore functionality.');
+        showExtensionContextNotification();
+        extensionContextWarningShown = true;
       }
+      return '';
+    }
+    
+    try {
+      const url = chrome.runtime.getURL(path);
+      return url;
     } catch (error) {
       extensionContextValid = false;
       // Only show warning once per page load to avoid spam
       if (!extensionContextWarningShown) {
         console.warn('Kayko: Extension context invalidated. Please refresh this page (F5) to restore functionality.');
-        // Show user-friendly notification
         showExtensionContextNotification();
         extensionContextWarningShown = true;
       }
+      return '';
     }
-    // Fallback: return empty string (caller should handle this)
-    return '';
   }
   
   // Show a user-friendly notification about extension context
@@ -148,10 +153,24 @@
     // Click handler to open side panel
     icon.addEventListener('click', (e) => {
       e.stopPropagation();
+      // Check if extension context is valid before trying to send message
+      if (!extensionContextValid || typeof chrome === 'undefined' || !chrome.runtime || typeof chrome.runtime.sendMessage !== 'function') {
+        if (!extensionContextWarningShown) {
+          console.warn('Kayko: Extension context invalidated. Please refresh this page (F5) to restore functionality.');
+          showExtensionContextNotification();
+          extensionContextWarningShown = true;
+        }
+        return;
+      }
       try {
         chrome.runtime.sendMessage({ action: 'openSidePanel' });
       } catch (error) {
-        console.warn('Kayko: Extension context invalidated');
+        extensionContextValid = false;
+        if (!extensionContextWarningShown) {
+          console.warn('Kayko: Extension context invalidated. Please refresh this page (F5) to restore functionality.');
+          showExtensionContextNotification();
+          extensionContextWarningShown = true;
+        }
       }
     });
 
@@ -188,13 +207,6 @@
       icon.classList.remove('idle', 'saving', 'saved');
       icon.classList.add(state);
       
-      // Get the img element
-      let img = icon.querySelector('.kayko-icon-img');
-      if (!img) {
-        console.warn('Kayko: Image element not found in icon');
-        return;
-      }
-      
       // Change icon image based on state - using custom icons
       let iconPath = '';
       if (state === 'idle') {
@@ -217,24 +229,40 @@
           return;
         }
         
-        // For ChatGPT, force complete image replacement to prevent overlap
+        // For ChatGPT, force complete image replacement to prevent duplicate icons
         const isChatGPT = window.location.hostname.includes('chatgpt.com') || window.location.hostname.includes('openai.com');
         
-        if (isChatGPT && state === 'saving') {
-          // Remove old image completely and create new one
-          img.remove();
-          img = document.createElement('img');
+        if (isChatGPT) {
+          // Remove ALL existing images first to prevent duplicates
+          const existingImgs = icon.querySelectorAll('.kayko-icon-img');
+          existingImgs.forEach(existingImg => {
+            try {
+              existingImg.remove();
+            } catch (e) {
+              // Silently ignore removal errors
+            }
+          });
+          
+          // Create new image element
+          const img = document.createElement('img');
           img.alt = 'Kayko';
           img.className = 'kayko-icon-img';
-          img.src = iconUrl + '?t=' + Date.now(); // Always use cache buster for saving
+          img.src = iconUrl + (state === 'saving' ? '?t=' + Date.now() : '');
           icon.appendChild(img);
         } else {
-          // For other states or platforms, just update src
-          // Clear the image first to force reload
+          // For other platforms, update existing image src
+          let img = icon.querySelector('.kayko-icon-img');
+          if (!img) {
+            // If no image exists, create one
+            img = document.createElement('img');
+            img.alt = 'Kayko';
+            img.className = 'kayko-icon-img';
+            icon.appendChild(img);
+          }
+          // Clear and update src
           img.src = '';
-          // Small delay to ensure old image is cleared
           setTimeout(() => {
-            if (img && img.parentNode) { // Check if img still exists
+            if (img && img.parentNode) {
               img.src = iconUrl + (state === 'saving' ? '?t=' + Date.now() : '');
             }
           }, 10);
@@ -261,9 +289,19 @@
     };
 
     try {
+      // Check if extension context is valid
+      if (!extensionContextValid) {
+        return false;
+      }
+      
       // Check if chrome.storage is available
-      if (!chrome || !chrome.storage || !chrome.storage.local) {
-        console.warn('Kayko: chrome.storage is not available');
+      if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+        extensionContextValid = false;
+        if (!extensionContextWarningShown) {
+          console.warn('Kayko: Extension context invalidated. Please refresh this page (F5) to restore functionality.');
+          showExtensionContextNotification();
+          extensionContextWarningShown = true;
+        }
         return false;
       }
 
@@ -284,8 +322,35 @@
         }
       }
 
-      // Add new prompt at the beginning
-      prompts.unshift(prompt);
+      // Check if new prompt contains an existing prompt from the same platform as a substring
+      // If found, update that existing prompt instead of creating a new one
+      const currentPlatform = prompt.platform;
+      let foundExistingPrompt = false;
+      
+      for (let i = 0; i < prompts.length; i++) {
+        const existingPrompt = prompts[i];
+        // Only check prompts from the same platform
+        if (existingPrompt.platform === currentPlatform) {
+          // Check if the existing prompt text is an exact substring of the new prompt
+          if (text.includes(existingPrompt.text) && text !== existingPrompt.text) {
+            // Update the existing prompt with the new text
+            existingPrompt.text = text;
+            existingPrompt.timestamp = prompt.timestamp;
+            existingPrompt.url = prompt.url;
+            // Preserve favorite status and other properties
+            // Move updated prompt to the beginning (most recent)
+            prompts.splice(i, 1);
+            prompts.unshift(existingPrompt);
+            foundExistingPrompt = true;
+            break;
+          }
+        }
+      }
+
+      // If no existing prompt was found to update, add as new prompt
+      if (!foundExistingPrompt) {
+        prompts.unshift(prompt);
+      }
 
       // Keep only the last N prompts
       if (prompts.length > settings.maxPrompts) {
@@ -296,20 +361,27 @@
       
       // Update badge count
       try {
-        if (chrome.runtime && chrome.runtime.sendMessage) {
+        if (extensionContextValid && chrome.runtime && typeof chrome.runtime.sendMessage === 'function') {
           chrome.runtime.sendMessage({ action: 'updateBadge' });
         }
       } catch (error) {
-        // Extension context might be invalidated, ignore silently
+        // Extension context might be invalidated, mark as invalid
+        extensionContextValid = false;
+        // Don't show warning here as it's a non-critical operation
       }
       
       return true;
     } catch (error) {
       // Check if it's an extension context error
-      if (error.message && error.message.includes('Extension context invalidated')) {
-        console.warn('Kayko: Extension was reloaded. Please refresh the page.');
-      } else if (error.message && error.message.includes('Cannot read properties')) {
-        console.warn('Kayko: Extension context invalidated. Please refresh the page.');
+      extensionContextValid = false;
+      if (error.message && (error.message.includes('Extension context invalidated') || 
+          error.message.includes('Cannot read properties') ||
+          error.message.includes('chrome.storage'))) {
+        if (!extensionContextWarningShown) {
+          console.warn('Kayko: Extension context invalidated. Please refresh this page (F5) to restore functionality.');
+          showExtensionContextNotification();
+          extensionContextWarningShown = true;
+        }
       } else {
         console.error('Kayko: Error saving prompt', error);
       }
@@ -392,6 +464,21 @@
       if (existing && existing.icon && document.body.contains(existing.icon)) {
         try {
           positionIcon(textarea, existing.icon);
+          // For ChatGPT, ensure only one image exists in the icon
+          const isChatGPT = window.location.hostname.includes('chatgpt.com') || window.location.hostname.includes('openai.com');
+          if (isChatGPT) {
+            const imgs = existing.icon.querySelectorAll('.kayko-icon-img');
+            if (imgs.length > 1) {
+              // Keep only the first one, remove the rest
+              for (let i = 1; i < imgs.length; i++) {
+                try {
+                  imgs[i].remove();
+                } catch (e) {
+                  // Silently ignore
+                }
+              }
+            }
+          }
         } catch (error) {
           // Silently fail
         }
