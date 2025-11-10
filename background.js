@@ -10,7 +10,6 @@ chrome.runtime.onInstalled.addListener(async () => {
     await chrome.storage.local.set({
       settings: {
         maxPrompts: 100,
-        excludedSites: [],
         autoSaveEnabled: true
       }
     });

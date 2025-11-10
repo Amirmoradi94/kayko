@@ -718,7 +718,8 @@ body.theme-perplexity .btn-sm.primary:hover {
   padding: 20px 24px;
   border-top: 1px solid var(--border-color);
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .btn-primary {
@@ -735,6 +736,45 @@ body.theme-perplexity .btn-sm.primary:hover {
 
 .btn-primary:hover {
   background: #2563EB;
+}
+
+/* Footer Left Section */
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* GitHub Link */
+.github-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.github-link:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+.github-link svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Version Text */
+.version-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 /* Scrollbar */

@@ -63,7 +63,6 @@ async function loadData() {
   allPrompts = result.prompts || [];
   settings = result.settings || { 
     maxPrompts: 100, 
-    excludedSites: [], 
     autoSaveEnabled: true,
     openaiApiKey: ''
   };
@@ -781,9 +780,19 @@ async function openSettings() {
   
   // Populate current settings
   document.getElementById('maxPromptsInput').value = settings.maxPrompts;
-  document.getElementById('excludedSitesInput').value = settings.excludedSites.join(', ');
   document.getElementById('autoSaveToggle').checked = settings.autoSaveEnabled !== false;
   document.getElementById('openaiApiKeyInput').value = settings.openaiApiKey || '';
+  
+  // Set version from manifest
+  try {
+    const manifest = chrome.runtime.getManifest();
+    const versionText = document.getElementById('versionText');
+    if (versionText && manifest.version) {
+      versionText.textContent = `v${manifest.version}`;
+    }
+  } catch (error) {
+    console.error('Error getting version:', error);
+  }
 }
 
 // Close settings modal
@@ -794,14 +803,10 @@ function closeSettings() {
 // Save settings
 async function saveSettings() {
   const maxPrompts = parseInt(document.getElementById('maxPromptsInput').value);
-  const excludedSites = document.getElementById('excludedSitesInput').value
-    .split(',')
-    .map(s => s.trim())
-    .filter(s => s.length > 0);
   const autoSaveEnabled = document.getElementById('autoSaveToggle').checked;
   const openaiApiKey = document.getElementById('openaiApiKeyInput').value.trim();
   
-  settings = { maxPrompts, excludedSites, autoSaveEnabled, openaiApiKey };
+  settings = { maxPrompts, autoSaveEnabled, openaiApiKey };
   await chrome.storage.local.set({ settings });
   
   // Trim prompts if needed

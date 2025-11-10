@@ -13,6 +13,21 @@
   let debounceTimers = new WeakMap();
   const positionUpdateTimers = new WeakMap(); // Debounce position updates
 
+  // Check if current website is a supported LLM platform
+  function isLLMWebsite() {
+    const hostname = window.location.hostname;
+    return hostname.includes('openai.com') || 
+           hostname.includes('chatgpt.com') ||
+           hostname.includes('claude.ai') || 
+           hostname.includes('anthropic.com') ||
+           hostname.includes('aistudio.google.com') ||
+           hostname.includes('gemini.google.com') ||
+           (hostname.includes('google.com') && (hostname.includes('gemini') || window.location.pathname.includes('gemini'))) ||
+           hostname.includes('x.ai') || 
+           hostname.includes('grok.com') ||
+           hostname.includes('perplexity.ai');
+  }
+
   // Detect current LLM platform
   function detectPlatform() {
     const hostname = window.location.hostname;
@@ -154,9 +169,20 @@
     icon.appendChild(img);
     icon.title = 'Kayko - Click to view saved prompts';
     
-    // Click handler to open side panel
-    icon.addEventListener('click', (e) => {
+    // Click handler - behavior depends on auto-save setting
+    icon.addEventListener('click', async (e) => {
       e.stopPropagation();
+      
+      // Check if auto-save is enabled
+      const autoSaveEnabled = await isAutoSaveEnabled();
+      
+      if (!autoSaveEnabled) {
+        // Auto-save is disabled - manual save on click
+        manualSave(textarea, icon);
+        return;
+      }
+      
+      // Auto-save is enabled - open side panel on click
       // Check if extension context is valid before trying to send message
       if (!extensionContextValid || typeof chrome === 'undefined' || !chrome.runtime || typeof chrome.runtime.sendMessage !== 'function') {
         if (!extensionContextWarningShown) {
@@ -329,12 +355,7 @@
 
       const result = await chrome.storage.local.get(['prompts', 'settings']);
       const prompts = result.prompts || [];
-      const settings = result.settings || { maxPrompts: 100, excludedSites: [] };
-
-      // Check if site is excluded
-      if (settings.excludedSites && settings.excludedSites.some(site => window.location.hostname.includes(site))) {
-        return false;
-      }
+      const settings = result.settings || { maxPrompts: 100 };
 
       // Check if this is a duplicate of the last prompt
       if (prompts.length > 0) {
@@ -455,8 +476,31 @@
     return '';
   }
 
+  // Check if auto-save is enabled
+  async function isAutoSaveEnabled() {
+    try {
+      if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+        return true; // Default to enabled if can't check
+      }
+      const result = await chrome.storage.local.get('settings');
+      const settings = result.settings || { autoSaveEnabled: true };
+      return settings.autoSaveEnabled !== false;
+    } catch (error) {
+      return true; // Default to enabled on error
+    }
+  }
+
   // Handle textarea input with debouncing
-  function handleTextareaInput(textarea, icon) {
+  async function handleTextareaInput(textarea, icon) {
+    // Check if auto-save is enabled
+    const autoSaveEnabled = await isAutoSaveEnabled();
+    if (!autoSaveEnabled) {
+      // Auto-save is disabled, just update icon to show it's ready for manual save
+      setIconState(icon, 'idle');
+      icon.title = 'Kayko - Click to manually save prompt';
+      return;
+    }
+
     // Clear existing timer
     if (debounceTimers.has(textarea)) {
       clearTimeout(debounceTimers.get(textarea));
@@ -464,6 +508,7 @@
 
     // Show saving state
     setIconState(icon, 'saving');
+    icon.title = 'Kayko - Auto-saving...';
 
     // Set new timer
     const timer = setTimeout(async () => {
@@ -471,13 +516,49 @@
       const success = await savePrompt(textarea, text);
       if (success) {
         setIconState(icon, 'saved');
-        setTimeout(() => setIconState(icon, 'idle'), 2000);
+        icon.title = 'Kayko - Saved! Click to view saved prompts';
+        setTimeout(() => {
+          setIconState(icon, 'idle');
+          icon.title = 'Kayko - Click to view saved prompts';
+        }, 2000);
       } else {
         setIconState(icon, 'idle');
+        icon.title = 'Kayko - Click to view saved prompts';
       }
     }, DEBOUNCE_DELAY);
 
     debounceTimers.set(textarea, timer);
+  }
+
+  // Manual save function
+  async function manualSave(textarea, icon) {
+    const text = getTextContent(textarea);
+    if (!text || text.trim().length < 3) {
+      // Show brief feedback that text is too short
+      const originalTitle = icon.title;
+      icon.title = 'Text too short to save (minimum 3 characters)';
+      setTimeout(() => {
+        icon.title = originalTitle;
+      }, 2000);
+      return;
+    }
+
+    // Show saving state
+    setIconState(icon, 'saving');
+    icon.title = 'Saving...';
+
+    const success = await savePrompt(textarea, text);
+    if (success) {
+      setIconState(icon, 'saved');
+      icon.title = 'Saved! Right-click to view saved prompts';
+      setTimeout(() => {
+        setIconState(icon, 'idle');
+        icon.title = 'Kayko - Click to manually save prompt (Right-click to view saved prompts)';
+      }, 2000);
+    } else {
+      setIconState(icon, 'idle');
+      icon.title = 'Kayko - Click to manually save prompt (Right-click to view saved prompts)';
+    }
   }
 
   // Clean up all existing icons (prevent duplicates)
@@ -580,6 +661,39 @@
       textarea.addEventListener('input', inputHandler, { passive: true });
       textarea.addEventListener('keyup', inputHandler, { passive: true });
       textarea.addEventListener('paste', inputHandler, { passive: true });
+
+      // Update icon title based on auto-save status
+      (async () => {
+        const autoSaveEnabled = await isAutoSaveEnabled();
+        if (!autoSaveEnabled) {
+          icon.title = 'Kayko - Click to manually save prompt (Right-click to view saved prompts)';
+        }
+      })();
+
+      // Right-click handler to open side panel (works regardless of auto-save setting)
+      icon.addEventListener('contextmenu', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!extensionContextValid || typeof chrome === 'undefined' || !chrome.runtime || typeof chrome.runtime.sendMessage !== 'function') {
+          if (!extensionContextWarningShown) {
+            console.warn('Kayko: Extension context invalidated. Please refresh this page (F5) to restore functionality.');
+            showExtensionContextNotification();
+            extensionContextWarningShown = true;
+          }
+          return;
+        }
+        try {
+          chrome.runtime.sendMessage({ action: 'openSidePanel' });
+        } catch (error) {
+          extensionContextValid = false;
+          if (!extensionContextWarningShown) {
+            console.warn('Kayko: Extension context invalidated. Please refresh this page (F5) to restore functionality.');
+            showExtensionContextNotification();
+            extensionContextWarningShown = true;
+          }
+        }
+      });
 
       // Add focus listener to reposition icon
       textarea.addEventListener('focus', () => {
@@ -737,6 +851,11 @@
 
   // Detect and track all textareas
   function detectTextareas() {
+    // Only run on LLM websites
+    if (!isLLMWebsite()) {
+      return;
+    }
+    
     // Find all textareas and contenteditable elements
     // Note: [contenteditable] matches all elements with the attribute (regardless of value)
     // We'll filter out contenteditable="false" elements below
@@ -823,6 +942,12 @@
   // Initialize
   function init() {
     try {
+      // Only run on LLM websites
+      if (!isLLMWebsite()) {
+        console.log('Kayko: Not an LLM website, skipping initialization');
+        return;
+      }
+      
       console.log('Kayko: Content script initialized on', window.location.hostname);
       
       // Clean up any existing icons first (in case of page reactivation)

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Chat with peace of mind, I've got your back",
+  "name": "Chat with peace of mind, I've got you",
   "version": "1.0.0",
   "description": "Auto-save your LLM prompts locally. Never lose your carefully crafted prompts again - works on ChatGPT, Claude, Gemini, and more.",
   "permissions": [
@@ -33,14 +33,12 @@
         "*://*.chatgpt.com/*",
         "*://*.anthropic.com/*",
         "*://*.claude.ai/*",
-        "*://*.google.com/*",
         "*://gemini.google.com/*",
         "*://aistudio.google.com/*",
         "*://*.x.ai/*",
         "*://*.grok.com/*",
         "*://*.perplexity.ai/*",
-        "*://chat.openai.com/*",
-        "*://*/*"
+        "*://chat.openai.com/*"
       ],
       "js": ["content.js"],
       "css": ["content.css"],
