@@ -16,7 +16,7 @@
   opacity: 0.9;
 }
 
-.kayko-icon:hover {
+.kayko-icon-wrapper:hover .kayko-icon {
   transform: scale(1.15);
   box-shadow: none;
   opacity: 1;
@@ -40,14 +40,14 @@
   opacity: 1;
 }
 
-/* Saving state - blue pulsing */
+/* Saving state - cat running animation */
 .kayko-icon.saving {
-  animation: kayko-pulse 1.5s ease-in-out infinite;
+  animation: kayko-running 0.6s ease-in-out infinite;
 }
 
 .kayko-icon.saving img {
   filter: none;
-  animation: kayko-spin 2s linear infinite;
+  animation: none;
 }
 
 /* Saved state - green with checkmark effect */
@@ -60,12 +60,18 @@
   animation: kayko-checkmark 0.6s ease;
 }
 
-@keyframes kayko-spin {
-  from {
-    transform: rotate(0deg);
+@keyframes kayko-running {
+  0%, 100% {
+    transform: translateY(0) translateX(0) rotate(0deg);
   }
-  to {
-    transform: rotate(360deg);
+  25% {
+    transform: translateY(-8px) translateX(2px) rotate(-5deg);
+  }
+  50% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-8px) translateX(-2px) rotate(5deg);
   }
 }
 
@@ -106,6 +112,128 @@
   100% {
     opacity: 0.8;
     transform: scale(1);
+  }
+}
+
+/* Icon Wrapper */
+.kayko-icon-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 56px;
+  height: 56px;
+}
+
+/* Ring (appears on hover) */
+.kayko-icon-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px solid;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 10001;
+}
+
+.kayko-icon-wrapper:hover .kayko-icon-ring {
+  opacity: 1;
+}
+
+/* Ring states */
+.kayko-icon-ring.ring-enabled {
+  border-color: #10B981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+}
+
+.kayko-icon-ring.ring-disabled {
+  border-color: #6B7280;
+  box-shadow: 0 0 8px rgba(107, 114, 128, 0.2);
+}
+
+.kayko-icon-ring.ring-animate {
+  animation: ring-pulse 0.3s ease;
+}
+
+@keyframes ring-pulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+/* Toggle Switch at 3 o'clock position */
+.kayko-auto-save-toggle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(calc(-50% + 40px), -50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid;
+  background: var(--bg-primary, #ffffff);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  pointer-events: auto;
+  z-index: 10002;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.kayko-auto-save-toggle:hover {
+  transform: translate(calc(-50% + 40px), -50%) scale(1.15);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Toggle switch states */
+.kayko-auto-save-toggle.toggle-on {
+  border-color: #10B981;
+  background: #10B981;
+}
+
+.kayko-auto-save-toggle.toggle-on::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: white;
+  display: block;
+}
+
+.kayko-auto-save-toggle.toggle-off {
+  border-color: #6B7280;
+  background: var(--bg-primary, #ffffff);
+}
+
+.kayko-auto-save-toggle.toggle-off::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6B7280;
+  display: block;
+}
+
+/* Toggle feedback animation */
+.kayko-icon-wrapper.toggle-feedback {
+  animation: toggle-feedback 0.3s ease;
+}
+
+@keyframes toggle-feedback {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
   }
 }
 

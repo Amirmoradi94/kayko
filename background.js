@@ -32,25 +32,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true;
 });
 
-// Update badge with today's prompt count
+// Update badge with today's prompt count (disabled - no badge numbers shown)
 async function updateBadgeCount() {
   try {
-    const result = await chrome.storage.local.get('prompts');
-    const prompts = result.prompts || [];
-    
-    // Count prompts from today
-    const today = new Date().setHours(0, 0, 0, 0);
-    const todayCount = prompts.filter(p => {
-      const promptDate = new Date(p.timestamp).setHours(0, 0, 0, 0);
-      return promptDate === today;
-    }).length;
-    
-    if (todayCount > 0) {
-      chrome.action.setBadgeText({ text: todayCount.toString() });
-      chrome.action.setBadgeBackgroundColor({ color: '#10B981' });
-    } else {
-      chrome.action.setBadgeText({ text: '' });
-    }
+    // Always clear badge text - no numbers shown
+    chrome.action.setBadgeText({ text: '' });
   } catch (error) {
     console.error('Error updating badge:', error);
   }

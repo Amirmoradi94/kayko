@@ -621,12 +621,15 @@ function showEnhancedPromptModal(originalPrompt, enhancedPrompt, fullResponse) {
           <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 16px; white-space: pre-wrap; font-family: monospace; font-size: 13px;">${escapeHtml(originalPrompt.text)}</div>
         </div>
         <div class="setting-item">
-          <label><strong>Enhanced Prompt:</strong></label>
-          <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 16px; white-space: pre-wrap; font-family: monospace; font-size: 13px;">${escapeHtml(enhancedPrompt)}</div>
-        </div>
-        <div class="setting-item">
-          <label><strong>Full Response:</strong></label>
-          <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 16px; white-space: pre-wrap; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto;">${escapeHtml(fullResponse)}</div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <label><strong>Enhanced Prompt:</strong></label>
+            <button class="icon-btn" id="copyEnhancedPromptBtn" title="Copy enhanced prompt" style="width: 32px; height: 32px; padding: 0;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5.5 4.5H3.5C2.67157 4.5 2 5.17157 2 6V12.5C2 13.3284 2.67157 14 3.5 14H10C10.8284 14 11.5 13.3284 11.5 12.5V10.5M5.5 4.5C5.5 3.67157 6.17157 3 7 3H10.5C11.3284 3 12 3.67157 12 4.5V8M5.5 4.5C5.5 5.32843 6.17157 6 7 6H10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div id="enhancedPromptText" style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-bottom: 16px; white-space: pre-wrap; font-family: monospace; font-size: 13px; cursor: pointer; user-select: text; position: relative;" title="Click to copy">${escapeHtml(enhancedPrompt)}</div>
         </div>
       </div>
       <div class="modal-footer">
@@ -644,10 +647,49 @@ function showEnhancedPromptModal(originalPrompt, enhancedPrompt, fullResponse) {
     modal.remove();
   });
   
+  // Copy enhanced prompt - from button
   modal.querySelector('#copyEnhancedBtn').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(enhancedPrompt);
       showNotification('Enhanced prompt copied to clipboard!');
+    } catch (error) {
+      showNotification('Failed to copy', 'error');
+    }
+  });
+
+  // Copy enhanced prompt - from icon button next to label
+  modal.querySelector('#copyEnhancedPromptBtn').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(enhancedPrompt);
+      showNotification('Enhanced prompt copied to clipboard!');
+      // Visual feedback
+      const btn = e.target.closest('button');
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 3.5L6.5 10L3 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      btn.style.color = 'var(--success-color)';
+      setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.style.color = '';
+      }, 2000);
+    } catch (error) {
+      showNotification('Failed to copy', 'error');
+    }
+  });
+
+  // Copy enhanced prompt - click on text
+  const enhancedPromptText = modal.querySelector('#enhancedPromptText');
+  enhancedPromptText.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(enhancedPrompt);
+      showNotification('Enhanced prompt copied to clipboard!');
+      // Visual feedback
+      const originalBg = enhancedPromptText.style.background;
+      enhancedPromptText.style.background = 'var(--success-color)';
+      enhancedPromptText.style.transition = 'background 0.3s ease';
+      setTimeout(() => {
+        enhancedPromptText.style.background = originalBg;
+      }, 300);
     } catch (error) {
       showNotification('Failed to copy', 'error');
     }
@@ -827,10 +869,25 @@ function updateStorageInfo() {
 
 // Handle storage changes from other contexts
 function handleStorageChange(changes, namespace) {
-  if (namespace === 'local' && changes.prompts) {
-    allPrompts = changes.prompts.newValue || [];
-    applyFilters();
-    updateStorageInfo();
+  if (namespace === 'local') {
+    if (changes.prompts) {
+      allPrompts = changes.prompts.newValue || [];
+      applyFilters();
+      updateStorageInfo();
+    }
+    
+    // Handle settings changes (e.g., from toggle button in content script)
+    if (changes.settings) {
+      settings = changes.settings.newValue || settings;
+      
+      // If settings modal is open, refresh it with new settings
+      const modal = document.getElementById('settingsModal');
+      if (modal && !modal.classList.contains('hidden')) {
+        document.getElementById('maxPromptsInput').value = settings.maxPrompts || 100;
+        document.getElementById('autoSaveToggle').checked = settings.autoSaveEnabled !== false;
+        document.getElementById('openaiApiKeyInput').value = settings.openaiApiKey || '';
+      }
+    }
   }
 }
 

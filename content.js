@@ -16,6 +16,12 @@
   // Check if current website is a supported LLM platform
   function isLLMWebsite() {
     const hostname = window.location.hostname;
+    
+    // Exclude mail.google.com (Gmail)
+    if (hostname.includes('mail.google.com')) {
+      return false;
+    }
+    
     return hostname.includes('openai.com') || 
            hostname.includes('chatgpt.com') ||
            hostname.includes('claude.ai') || 
@@ -152,6 +158,10 @@
 
   // Create and inject the Kayko icon
   function createIcon(textarea) {
+    // Create wrapper container
+    const iconWrapper = document.createElement('div');
+    iconWrapper.className = 'kayko-icon-wrapper';
+    
     const icon = document.createElement('div');
     icon.className = 'kayko-icon idle';
     
@@ -168,6 +178,68 @@
     
     icon.appendChild(img);
     icon.title = 'Kayko - Click to view saved prompts';
+    
+    // Create ring element (appears on hover)
+    const ring = document.createElement('div');
+    ring.className = 'kayko-icon-ring';
+    
+    // Create toggle switch at 3 o'clock position
+    const toggleSwitch = document.createElement('button');
+    toggleSwitch.className = 'kayko-auto-save-toggle';
+    toggleSwitch.type = 'button';
+    toggleSwitch.setAttribute('aria-label', 'Toggle auto-save');
+    
+    // Add toggle switch to ring
+    ring.appendChild(toggleSwitch);
+    
+    // Add ring to wrapper
+    iconWrapper.appendChild(icon);
+    iconWrapper.appendChild(ring);
+    
+    // Update ring state based on current auto-save setting
+    updateRingState(ring, toggleSwitch);
+    
+    // Toggle switch click handler
+    toggleSwitch.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      
+      try {
+        // Get current settings (preserve all existing settings)
+        const result = await chrome.storage.local.get('settings');
+        const currentSettings = result.settings || { 
+          maxPrompts: 100,
+          autoSaveEnabled: true,
+          openaiApiKey: ''
+        };
+        
+        // Toggle auto-save while preserving all other settings
+        const updatedSettings = {
+          ...currentSettings,
+          autoSaveEnabled: !currentSettings.autoSaveEnabled
+        };
+        
+        // Save updated settings
+        await chrome.storage.local.set({ settings: updatedSettings });
+        
+        // Update ring state with animation
+        updateRingState(ring, toggleSwitch, true);
+        
+        // Update icon title
+        const newAutoSaveEnabled = updatedSettings.autoSaveEnabled;
+        icon.title = newAutoSaveEnabled 
+          ? 'Kayko - Click to view saved prompts' 
+          : 'Kayko - Click to manually save prompt';
+        
+        // Show brief visual feedback
+        iconWrapper.classList.add('toggle-feedback');
+        setTimeout(() => {
+          iconWrapper.classList.remove('toggle-feedback');
+        }, 300);
+      } catch (error) {
+        console.error('Kayko: Error toggling auto-save', error);
+      }
+    });
     
     // Click handler - behavior depends on auto-save setting
     icon.addEventListener('click', async (e) => {
@@ -204,7 +276,38 @@
       }
     });
 
-    return icon;
+    return iconWrapper;
+  }
+  
+  // Update ring state based on auto-save setting
+  async function updateRingState(ring, toggleSwitch, animate = false) {
+    try {
+      const result = await chrome.storage.local.get('settings');
+      const settings = result.settings || { autoSaveEnabled: true };
+      const autoSaveEnabled = settings.autoSaveEnabled !== false;
+      
+      // Update ring appearance (colored when on, grey when off)
+      if (autoSaveEnabled) {
+        ring.classList.add('ring-enabled');
+        ring.classList.remove('ring-disabled');
+      } else {
+        ring.classList.add('ring-disabled');
+        ring.classList.remove('ring-enabled');
+      }
+      
+      // Update toggle switch state
+      toggleSwitch.classList.toggle('toggle-on', autoSaveEnabled);
+      toggleSwitch.classList.toggle('toggle-off', !autoSaveEnabled);
+      
+      if (animate) {
+        ring.classList.add('ring-animate');
+        setTimeout(() => {
+          ring.classList.remove('ring-animate');
+        }, 300);
+      }
+    } catch (error) {
+      console.error('Kayko: Error updating ring state', error);
+    }
   }
 
   // Position the icon relative to textarea (attached to top-right border, outside)
@@ -261,7 +364,7 @@
         // Idle state - custom idle icon
         iconPath = 'icons/idle-icon.png';
       } else if (state === 'saving') {
-        // Saving state - custom saving icon
+        // Saving state - use moving icon with running animation
         iconPath = 'icons/saving-icon.png';
       } else if (state === 'saved') {
         // Saved state - back to idle icon but with green tint via CSS
@@ -490,8 +593,21 @@
     }
   }
 
+  // Get inner icon element from wrapper
+  function getInnerIcon(iconWrapper) {
+    // If it's already the inner icon (has .kayko-icon class), return it
+    if (iconWrapper.classList && iconWrapper.classList.contains('kayko-icon')) {
+      return iconWrapper;
+    }
+    // Otherwise, find the inner icon
+    return iconWrapper.querySelector ? iconWrapper.querySelector('.kayko-icon') : iconWrapper;
+  }
+
   // Handle textarea input with debouncing
-  async function handleTextareaInput(textarea, icon) {
+  async function handleTextareaInput(textarea, iconWrapper) {
+    const icon = getInnerIcon(iconWrapper);
+    if (!icon) return;
+    
     // Check if auto-save is enabled
     const autoSaveEnabled = await isAutoSaveEnabled();
     if (!autoSaveEnabled) {
@@ -531,7 +647,10 @@
   }
 
   // Manual save function
-  async function manualSave(textarea, icon) {
+  async function manualSave(textarea, iconWrapper) {
+    const icon = getInnerIcon(iconWrapper);
+    if (!icon) return;
+    
     const text = getTextContent(textarea);
     if (!text || text.trim().length < 3) {
       // Show brief feedback that text is too short
@@ -574,15 +693,15 @@
         return;
       }
       
-      const existingIcons = document.querySelectorAll('.kayko-icon');
-      if (!existingIcons || existingIcons.length === 0) return;
+      const existingIconWrappers = document.querySelectorAll('.kayko-icon-wrapper');
+      if (!existingIconWrappers || existingIconWrappers.length === 0) return;
       
-      existingIcons.forEach(icon => {
+      existingIconWrappers.forEach(iconWrapper => {
         try {
-          // Check if this icon is still tracked using our Set
-          if (!trackedIcons.has(icon)) {
+          // Check if this icon wrapper is still tracked using our Set
+          if (!trackedIcons.has(iconWrapper)) {
             // Remove if not tracked
-            icon.remove();
+            iconWrapper.remove();
           }
         } catch (error) {
           // Silently skip if there's an error with this icon
@@ -605,14 +724,17 @@
           // For ChatGPT, ensure only one image exists in the icon
           const isChatGPT = window.location.hostname.includes('chatgpt.com') || window.location.hostname.includes('openai.com');
           if (isChatGPT) {
-            const imgs = existing.icon.querySelectorAll('.kayko-icon-img');
-            if (imgs.length > 1) {
-              // Keep only the first one, remove the rest
-              for (let i = 1; i < imgs.length; i++) {
-                try {
-                  imgs[i].remove();
-                } catch (e) {
-                  // Silently ignore
+            const innerIcon = getInnerIcon(existing.icon);
+            if (innerIcon) {
+              const imgs = innerIcon.querySelectorAll('.kayko-icon-img');
+              if (imgs.length > 1) {
+                // Keep only the first one, remove the rest
+                for (let i = 1; i < imgs.length; i++) {
+                  try {
+                    imgs[i].remove();
+                  } catch (e) {
+                    // Silently ignore
+                  }
                 }
               }
             }
@@ -662,16 +784,20 @@
       textarea.addEventListener('keyup', inputHandler, { passive: true });
       textarea.addEventListener('paste', inputHandler, { passive: true });
 
+      // Get inner icon for title and event listeners
+      const innerIcon = getInnerIcon(icon);
+      
       // Update icon title based on auto-save status
       (async () => {
         const autoSaveEnabled = await isAutoSaveEnabled();
-        if (!autoSaveEnabled) {
-          icon.title = 'Kayko - Click to manually save prompt (Right-click to view saved prompts)';
+        if (!autoSaveEnabled && innerIcon) {
+          innerIcon.title = 'Kayko - Click to manually save prompt (Right-click to view saved prompts)';
         }
       })();
 
       // Right-click handler to open side panel (works regardless of auto-save setting)
-      icon.addEventListener('contextmenu', async (e) => {
+      if (innerIcon) {
+        innerIcon.addEventListener('contextmenu', async (e) => {
         e.preventDefault();
         e.stopPropagation();
         
@@ -693,7 +819,8 @@
             extensionContextWarningShown = true;
           }
         }
-      });
+        });
+      }
 
       // Add focus listener to reposition icon
       textarea.addEventListener('focus', () => {
