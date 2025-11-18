@@ -150,8 +150,8 @@
 }
 
 .kayko-icon-ring.ring-disabled {
-  border-color: #6B7280;
-  box-shadow: 0 0 8px rgba(107, 114, 128, 0.2);
+  border-color: #94A3B8;
+  box-shadow: 0 0 8px rgba(148, 163, 184, 0.3);
 }
 
 .kayko-icon-ring.ring-animate {
@@ -167,7 +167,7 @@
   }
 }
 
-/* Toggle Switch at 3 o'clock position */
+/* Power Button at 3 o'clock position */
 .kayko-auto-save-toggle {
   position: absolute;
   top: 50%;
@@ -194,33 +194,65 @@
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* Toggle switch states */
+/* Power button states */
 .kayko-auto-save-toggle.toggle-on {
-  border-color: #10B981;
-  background: #10B981;
+  border-color: #EF4444;
+  background: #EF4444;
+}
+
+.kayko-auto-save-toggle.toggle-on::before {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 6px;
+  background: white;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 0;
 }
 
 .kayko-auto-save-toggle.toggle-on::after {
   content: '';
+  position: absolute;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: white;
-  display: block;
+  border: 2px solid white;
+  background: transparent;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .kayko-auto-save-toggle.toggle-off {
-  border-color: #6B7280;
+  border-color: #94A3B8;
   background: var(--bg-primary, #ffffff);
+}
+
+.kayko-auto-save-toggle.toggle-off::before {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 6px;
+  background: #94A3B8;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 0;
 }
 
 .kayko-auto-save-toggle.toggle-off::after {
   content: '';
+  position: absolute;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #6B7280;
-  display: block;
+  border: 2px solid #94A3B8;
+  background: transparent;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 /* Toggle feedback animation */

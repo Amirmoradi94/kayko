@@ -6,7 +6,7 @@
   const KAYKO_VERSION = '1.0.1';
   console.log('Kayko: Content script v' + KAYKO_VERSION + ' loaded');
 
-  const DEBOUNCE_DELAY = 3000; // 3 seconds
+  const DEBOUNCE_DELAY = 1000; // 1 second
   const ICON_SIZE = 24;
   const trackedTextareas = new WeakMap();
   const trackedIcons = new Set(); // Track icons separately since WeakMap can't be iterated
@@ -380,44 +380,22 @@
           return;
         }
         
-        // For ChatGPT, force complete image replacement to prevent duplicate icons
-        const isChatGPT = window.location.hostname.includes('chatgpt.com') || window.location.hostname.includes('openai.com');
-        
-        if (isChatGPT) {
-          // Remove ALL existing images first to prevent duplicates
-          const existingImgs = icon.querySelectorAll('.kayko-icon-img');
-          existingImgs.forEach(existingImg => {
-            try {
-              existingImg.remove();
-            } catch (e) {
-              // Silently ignore removal errors
-            }
-          });
-          
-          // Create new image element
-          const img = document.createElement('img');
-          img.alt = 'Kayko';
-          img.className = 'kayko-icon-img';
-          img.src = iconUrl + (state === 'saving' ? '?t=' + Date.now() : '');
-          icon.appendChild(img);
-        } else {
-          // For other platforms, update existing image src
-          let img = icon.querySelector('.kayko-icon-img');
-          if (!img) {
-            // If no image exists, create one
-            img = document.createElement('img');
-            img.alt = 'Kayko';
-            img.className = 'kayko-icon-img';
-            icon.appendChild(img);
+        // Remove ALL existing images first to prevent duplicates (apply to all platforms)
+        const existingImgs = icon.querySelectorAll('.kayko-icon-img');
+        existingImgs.forEach(existingImg => {
+          try {
+            existingImg.remove();
+          } catch (e) {
+            // Silently ignore removal errors
           }
-          // Clear and update src
-          img.src = '';
-          setTimeout(() => {
-            if (img && img.parentNode) {
-              img.src = iconUrl + (state === 'saving' ? '?t=' + Date.now() : '');
-            }
-          }, 10);
-        }
+        });
+        
+        // Create new image element
+        const img = document.createElement('img');
+        img.alt = 'Kayko';
+        img.className = 'kayko-icon-img';
+        img.src = iconUrl + (state === 'saving' ? '?t=' + Date.now() : '');
+        icon.appendChild(img);
         
         console.log('Kayko: Icon state changed to', state, 'using', iconPath);
       }
@@ -721,20 +699,17 @@
         try {
           // Always reposition when detected again (handles position changes)
           positionIcon(textarea, existing.icon);
-          // For ChatGPT, ensure only one image exists in the icon
-          const isChatGPT = window.location.hostname.includes('chatgpt.com') || window.location.hostname.includes('openai.com');
-          if (isChatGPT) {
-            const innerIcon = getInnerIcon(existing.icon);
-            if (innerIcon) {
-              const imgs = innerIcon.querySelectorAll('.kayko-icon-img');
-              if (imgs.length > 1) {
-                // Keep only the first one, remove the rest
-                for (let i = 1; i < imgs.length; i++) {
-                  try {
-                    imgs[i].remove();
-                  } catch (e) {
-                    // Silently ignore
-                  }
+          // Ensure only one image exists in the icon (apply to all platforms)
+          const innerIcon = getInnerIcon(existing.icon);
+          if (innerIcon) {
+            const imgs = innerIcon.querySelectorAll('.kayko-icon-img');
+            if (imgs.length > 1) {
+              // Keep only the first one, remove the rest
+              for (let i = 1; i < imgs.length; i++) {
+                try {
+                  imgs[i].remove();
+                } catch (e) {
+                  // Silently ignore
                 }
               }
             }
