@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Kayko</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #1F2937;
+            border-bottom: 2px solid #3B82F6;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #374151;
+            margin-top: 30px;
+        }
+        .last-updated {
+            color: #6B7280;
+            font-style: italic;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .highlight {
+            background-color: #FEF3C7;
+            padding: 15px;
+            border-left: 4px solid #F59E0B;
+            margin: 20px 0;
+        }
+        a {
+            color: #3B82F6;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Privacy Policy for Kayko</h1>
+    <p class="last-updated">Last Updated: November 2024</p>
+
+    <div class="section">
+        <h2>Introduction</h2>
+        <p>
+            Kayko ("we," "our," or "the extension") is a browser extension that automatically saves your LLM (Large Language Model) prompts locally in your browser. This Privacy Policy explains how we collect, use, and protect your information.
+        </p>
+        <p>
+            <strong>Key Principle:</strong> All data processing happens locally on your device. We do not operate any servers that collect or store your data.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>Information We Collect</h2>
+        
+        <h3>1. Prompt Text</h3>
+        <p>We collect and store the text you type in LLM chat textareas, including:</p>
+        <ul>
+            <li>The full text of your prompts</li>
+            <li>Metadata associated with each prompt (timestamp, platform name, page URL)</li>
+            <li>Favorite/bookmark status you assign to prompts</li>
+        </ul>
+        <p><strong>Note:</strong> This text may contain personally identifiable information (PII) if you include such information in your prompts.</p>
+
+        <h3>2. User Activity</h3>
+        <p>We monitor the following activities to provide auto-save functionality:</p>
+        <ul>
+            <li>Typing events in textarea elements on LLM platforms</li>
+            <li>Clicks on the Kayko save icon</li>
+            <li>Interactions with the extension's side panel</li>
+        </ul>
+
+        <h3>3. Website Content</h3>
+        <p>We access the following website content:</p>
+        <ul>
+            <li>Text content from textarea elements (to save your prompts)</li>
+            <li>Page URL and hostname (to identify which LLM platform you're using)</li>
+        </ul>
+
+        <h3>4. Settings and Preferences</h3>
+        <p>We store your extension settings locally, including:</p>
+        <ul>
+            <li>Maximum number of prompts to keep</li>
+            <li>Auto-save enabled/disabled preference</li>
+            <li>OpenAI API key (if you choose to use the "Enhance Prompt" feature)</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>How We Use Your Information</h2>
+        <ul>
+            <li><strong>Auto-save functionality:</strong> To automatically save your prompts as you type</li>
+            <li><strong>History management:</strong> To display, search, and organize your saved prompts in the side panel</li>
+            <li><strong>Platform identification:</strong> To correctly label and categorize prompts by LLM platform</li>
+            <li><strong>Prompt enhancement:</strong> If you use the "Enhance Prompt" feature, your prompt text is sent to OpenAI's API to generate an improved version (see Third-Party Services below)</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Data Storage</h2>
+        <div class="highlight">
+            <strong>All data is stored locally in your browser using Chrome's local storage API.</strong> Your prompts never leave your computer unless you explicitly export them or use the "Enhance Prompt" feature.
+        </div>
+        <ul>
+            <li><strong>Storage location:</strong> Browser's local storage (chrome.storage.local)</li>
+            <li><strong>Data retention:</strong> Data persists until you delete it or uninstall the extension</li>
+            <li><strong>Storage limits:</strong> Browser local storage has a size limit (~10MB), which typically allows for hundreds to thousands of prompts</li>
+            <li><strong>Data export:</strong> You can export your prompts as JSON files at any time</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Third-Party Services</h2>
+        
+        <h3>OpenAI API (Optional Feature)</h3>
+        <p>
+            The "Enhance Prompt" feature is optional and requires you to provide your own OpenAI API key. When you use this feature:
+        </p>
+        <ul>
+            <li>Your prompt text is sent directly to OpenAI's API (https://api.openai.com)</li>
+            <li>We do not store or log your API key or API responses</li>
+            <li>OpenAI's privacy policy applies to data sent to their service</li>
+            <li>This feature is completely optional and disabled by default</li>
+        </ul>
+        <p>
+            <strong>OpenAI Privacy Policy:</strong> <a href="https://openai.com/policies/privacy-policy" target="_blank" rel="noopener">https://openai.com/policies/privacy-policy</a>
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>Data Sharing</h2>
+        <p><strong>We do not share, sell, or transmit your data to any third parties, except:</strong></p>
+        <ul>
+            <li>When you explicitly use the "Enhance Prompt" feature (sends data to OpenAI API)</li>
+            <li>When you export your prompts (creates a local file on your device)</li>
+        </ul>
+        <p>We do not:</p>
+        <ul>
+            <li>Collect analytics or tracking data</li>
+            <li>Send data to our own servers (we don't operate any servers)</li>
+            <li>Share data with advertisers or data brokers</li>
+            <li>Use third-party analytics services</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Data Security</h2>
+        <p>We implement the following security measures:</p>
+        <ul>
+            <li>All data is stored locally in your browser's secure storage</li>
+            <li>No network transmission of your prompts (except when using optional "Enhance Prompt" feature)</li>
+            <li>No external servers or databases</li>
+            <li>Your OpenAI API key (if provided) is stored locally and encrypted by Chrome's storage system</li>
+        </ul>
+        <p><strong>Note:</strong> While we take security seriously, no method of electronic storage is 100% secure. Your browser's local storage is protected by your operating system's security measures.</p>
+    </div>
+
+    <div class="section">
+        <h2>Your Rights and Choices</h2>
+        <p>You have full control over your data:</p>
+        <ul>
+            <li><strong>View your data:</strong> Access all saved prompts through the extension's side panel</li>
+            <li><strong>Delete individual prompts:</strong> Delete any prompt at any time</li>
+            <li><strong>Clear all data:</strong> Delete all saved prompts using the "Clear All" button</li>
+            <li><strong>Export your data:</strong> Export all prompts as a JSON file</li>
+            <li><strong>Disable auto-save:</strong> Turn off automatic saving in settings</li>
+            <li><strong>Uninstall:</strong> Uninstalling the extension removes all stored data</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Children's Privacy</h2>
+        <p>
+            Kayko is not intended for children under 13 years of age. We do not knowingly collect personal information from children. If you are a parent or guardian and believe your child has provided us with personal information, please contact us so we can delete such information.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>Changes to This Privacy Policy</h2>
+        <p>
+            We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date. You are advised to review this Privacy Policy periodically for any changes.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>Contact Us</h2>
+        <p>
+            If you have any questions about this Privacy Policy or our data practices, please contact us:
+        </p>
+        <ul>
+            <li><strong>GitHub:</strong> <a href="https://github.com/Amirmoradi94/kayko" target="_blank" rel="noopener">https://github.com/Amirmoradi94/kayko</a></li>
+            <li><strong>Issues:</strong> <a href="https://github.com/Amirmoradi94/kayko/issues" target="_blank" rel="noopener">GitHub Issues</a></li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Compliance</h2>
+        <p>
+            This extension complies with:
+        </p>
+        <ul>
+            <li>Chrome Web Store Developer Program Policies</li>
+            <li>General Data Protection Regulation (GDPR) principles (data minimization, local processing)</li>
+            <li>California Consumer Privacy Act (CCPA) principles (no data selling, user control)</li>
+        </ul>
+    </div>
+
+    <hr style="margin: 40px 0; border: none; border-top: 1px solid #E5E7EB;">
+    
+    <p style="text-align: center; color: #6B7280; font-size: 14px;">
+        © 2024 Kayko. All rights reserved.
+    </p>
+</body>
+</html>
