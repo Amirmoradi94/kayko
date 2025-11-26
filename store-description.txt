@@ -1,0 +1,101 @@
+Never Lose Your AI Prompts Again
+
+Kayko automatically saves every prompt you write across popular AI chat platforms. Your prompts are stored locally on your computer—completely private, secure, and offline.
+
+🎯 WHY KAYKO?
+
+• Browser crashes? Tab closes? Session timeout? Your prompts are safe
+• Build a personal library of your best prompts
+• Quickly reuse and refine previous prompts
+• Search through your entire prompt history instantly
+• 100% privacy - nothing leaves your computer
+
+✨ KEY FEATURES
+
+Auto-Save Every Second
+• Saves prompts automatically as you type
+• Works on all major AI platforms
+• Zero configuration needed
+
+Smart History Panel
+• Search and filter by keywords, platform, or date
+• One-click copy to clipboard
+• Star your favorite prompts for quick access
+• View full prompt text with expandable cards
+
+Complete Privacy
+• All data stored locally in your browser
+• No cloud uploads, no servers, no tracking
+• Works completely offline
+• Zero data collection - we never see your prompts
+
+Flexible Storage
+• Keep up to 1,000 prompts (customizable)
+• Export prompts as JSON for backup
+• Import previously exported prompts
+• Auto-merge prevents duplicates
+
+Visual Feedback
+• Small, unobtrusive icon appears next to text areas
+• Real-time status: Idle → Saving → Saved
+• Toggle auto-save on/off with power button
+• Green ring indicates active auto-save
+
+🌐 COMPATIBILITY
+
+Kayko works seamlessly across all major AI chat platforms and any website with text input fields. Simply install and start using—no configuration required.
+
+💡 HOW TO USE
+
+1. Install Kayko from Chrome Web Store
+2. Visit any AI chat platform
+3. Start typing - Kayko automatically detects and saves
+4. Click the Kayko icon to view your saved prompts
+5. Search, filter, copy, or export your prompt history
+
+🔒 PRIVACY & SECURITY
+
+Your privacy is our top priority:
+
+• No user accounts or sign-ups required
+• No internet connection needed after installation
+• No analytics, tracking, or third-party services
+• All prompts stay on YOUR computer forever
+• Open source - verify the code yourself
+
+⚙️ SETTINGS & CUSTOMIZATION
+
+• Adjust maximum prompts to keep (10-1,000)
+• Toggle auto-save on/off
+• Manage storage and clear history
+• Export/import for backup and migration
+
+🛠️ TECHNICAL DETAILS
+
+• Built with modern Manifest V3
+• Minimal performance impact (<1% CPU)
+• Small storage footprint (~5-10MB for 100 prompts)
+• Works offline after installation
+• Compatible with Chrome, Edge, and Chromium browsers
+
+📖 OPEN SOURCE
+
+Kayko is free and open source (MIT License). View the code, contribute, or report issues on GitHub: https://github.com/Amirmoradi94/kayko
+
+❓ FREQUENTLY ASKED QUESTIONS
+
+Q: Is Kayko really free?
+A: Yes! 100% free forever, no premium tiers, no hidden costs.
+
+Q: Where are my prompts stored?
+A: Locally in your browser's storage. They never leave your computer.
+
+Q: Can others see my prompts?
+A: No. Everything stays private on your device.
+
+Q: Does it slow down my browser?
+A: No. Kayko uses minimal resources (<1% CPU, ~5-10MB memory).
+
+Q: Can I back up my prompts?
+A: Yes! Export as JSON anytime, import on another device.
+
