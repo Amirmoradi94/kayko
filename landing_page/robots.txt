@@ -1,0 +1,12 @@
+# robots.txt for kayko.site
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://kayko.site/sitemap.xml
+
+# Disallow admin or private areas (if any)
+# Disallow: /admin/
+# Disallow: /private/
+

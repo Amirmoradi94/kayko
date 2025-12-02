@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kayko - Never Lose Your AI Prompts Again</title>
+  <meta name="description" content="Kayko automatically saves every prompt you write across ChatGPT, Claude, Gemini & more. 100% private, works offline.">
+  
+  <!-- SEO Meta Tags -->
+  <meta name="keywords" content="AI prompts, ChatGPT, Claude, Gemini, prompt manager, browser extension, privacy, local storage">
+  <meta name="author" content="Kayko">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kayko.site/">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://kayko.site/">
+  <meta property="og:title" content="Kayko - Never Lose Your AI Prompts Again">
+  <meta property="og:description" content="Automatically save every prompt you write across ChatGPT, Claude, Gemini & more. 100% private, works offline.">
+  <meta property="og:image" content="https://kayko.site/icons/icon128.png">
+  <meta property="og:site_name" content="Kayko">
+  
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://kayko.site/">
+  <meta name="twitter:title" content="Kayko - Never Lose Your AI Prompts Again">
+  <meta name="twitter:description" content="Automatically save every prompt you write across ChatGPT, Claude, Gemini & more. 100% private, works offline.">
+  <meta name="twitter:image" content="https://kayko.site/icons/icon128.png">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="../icons/icon32.png">
+  <link rel="apple-touch-icon" href="../icons/icon128.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="#" class="nav-logo">
+        <svg class="nav-logo-icon" viewBox="0 0 64 64" width="32" height="32">
+          <path d="M8 24 L16 8 L24 24 Z" fill="#FFB84D"/>
+          <path d="M40 24 L48 8 L56 24 Z" fill="#FFB84D"/>
+          <ellipse cx="32" cy="38" rx="24" ry="20" fill="#FFB84D"/>
+          <ellipse cx="22" cy="36" rx="5" ry="6" fill="#2D3748"/>
+          <ellipse cx="42" cy="36" rx="5" ry="6" fill="#2D3748"/>
+          <path d="M32 42 L29 46 L35 46 Z" fill="#FF8FA3"/>
+        </svg>
+        <span>Kayko</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How it Works</a>
+        <a href="#platforms">Platforms</a>
+        <a href="#privacy">Privacy</a>
+        <a href="https://github.com/Amirmoradi94/kayko" target="_blank" class="nav-github">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+          </svg>
+        </a>
+      </div>
+      <a href="#install" class="nav-cta">Install Free</a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-bg">
+      <div class="hero-gradient"></div>
+      <div class="hero-grid"></div>
+    </div>
+    <div class="hero-container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="badge-icon">✨</span>
+          <span>100% Free & Open Source</span>
+        </div>
+        <h1 class="hero-title">
+          Never Lose Your<br>
+          <span class="gradient-text">AI Prompts</span> Again
+        </h1>
+        <p class="hero-subtitle">
+          Kayko automatically saves every prompt you write across ChatGPT, Claude, Gemini & more. 
+          Your prompts stay private on your computer—no cloud, no tracking.
+        </p>
+        <div class="hero-cta">
+          <a href="#install" class="btn btn-primary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Add to Chrome — It's Free
+          </a>
+          <a href="#how-it-works" class="btn btn-secondary">
+            See How It Works
+          </a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat">
+            <span class="stat-value">100%</span>
+            <span class="stat-label">Private</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat-value">6+</span>
+            <span class="stat-label">AI Platforms</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat-value">0</span>
+            <span class="stat-label">Data Collected</span>
+          </div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-cat">
+          <svg viewBox="0 0 200 200" class="cat-mascot">
+            <!-- Left Ear -->
+            <path d="M30 80 L50 20 L70 80 Z" fill="#FFB84D" stroke="#E59400" stroke-width="3"/>
+            <path d="M38 75 L50 30 L62 75 Z" fill="#FFD699"/>
+            <!-- Right Ear -->
+            <path d="M130 80 L150 20 L170 80 Z" fill="#FFB84D" stroke="#E59400" stroke-width="3"/>
+            <path d="M138 75 L150 30 L162 75 Z" fill="#FFD699"/>
+            <!-- Head -->
+            <ellipse cx="100" cy="115" rx="75" ry="60" fill="#FFB84D" stroke="#E59400" stroke-width="3"/>
+            <!-- Left Eye -->
+            <ellipse cx="70" cy="105" rx="15" ry="18" fill="#2D3748"/>
+            <ellipse cx="65" cy="100" rx="5" ry="5" fill="white" opacity="0.8"/>
+            <!-- Right Eye -->
+            <ellipse cx="130" cy="105" rx="15" ry="18" fill="#2D3748"/>
+            <ellipse cx="125" cy="100" rx="5" ry="5" fill="white" opacity="0.8"/>
+            <!-- Nose -->
+            <path d="M100 125 L93 135 L107 135 Z" fill="#FF8FA3"/>
+            <!-- Mouth -->
+            <path d="M80 145 Q90 155 100 145 Q110 155 120 145" fill="none" stroke="#2D3748" stroke-width="3" stroke-linecap="round"/>
+            <!-- Whiskers -->
+            <line x1="20" y1="120" x2="55" y2="125" stroke="#E59400" stroke-width="2"/>
+            <line x1="20" y1="135" x2="55" y2="135" stroke="#E59400" stroke-width="2"/>
+            <line x1="20" y1="150" x2="55" y2="145" stroke="#E59400" stroke-width="2"/>
+            <line x1="180" y1="120" x2="145" y2="125" stroke="#E59400" stroke-width="2"/>
+            <line x1="180" y1="135" x2="145" y2="135" stroke="#E59400" stroke-width="2"/>
+            <line x1="180" y1="150" x2="145" y2="145" stroke="#E59400" stroke-width="2"/>
+          </svg>
+          <!-- Floating elements -->
+          <div class="floating-prompt floating-prompt-1">
+            <span class="prompt-badge chatgpt">ChatGPT</span>
+            <span class="prompt-text">Write a Python function...</span>
+            <span class="prompt-saved">✓ Saved</span>
+          </div>
+          <div class="floating-prompt floating-prompt-2">
+            <span class="prompt-badge claude">Claude</span>
+            <span class="prompt-text">Explain quantum computing...</span>
+            <span class="prompt-saved">✓ Saved</span>
+          </div>
+          <div class="floating-prompt floating-prompt-3">
+            <span class="prompt-badge gemini">Gemini</span>
+            <span class="prompt-text">Create a marketing plan...</span>
+            <span class="prompt-saved">✓ Saved</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-scroll">
+      <span>Scroll to explore</span>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 5v14M5 12l7 7 7-7"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">Features</span>
+        <h2 class="section-title">Everything You Need to<br><span class="gradient-text">Save & Organize</span> Prompts</h2>
+        <p class="section-subtitle">Powerful features wrapped in a simple, unobtrusive interface</p>
+      </div>
+      
+      <div class="features-grid">
+        <div class="feature-card feature-large">
+          <div class="feature-icon" style="--accent: #10B981;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+          </div>
+          <h3>Auto-Save as You Type</h3>
+          <p>Every keystroke is captured. Browser crash? Tab closed? Your prompts are safe. Kayko saves automatically with zero configuration.</p>
+          <div class="feature-visual">
+            <div class="typing-demo">
+              <span class="typing-text">Write a function that...</span>
+              <span class="typing-cursor">|</span>
+              <span class="save-indicator">✓ Saving...</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="--accent: #A855F7;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </div>
+          <h3>AI Prompt Enhancement</h3>
+          <p>One click to transform simple prompts into powerful, detailed instructions that get better AI responses.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="--accent: #3B82F6;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
+            </svg>
+          </div>
+          <h3>Instant Search</h3>
+          <p>Find any prompt in seconds. Filter by platform, date, or keywords. Your entire prompt history at your fingertips.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="--accent: #F59E0B;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </div>
+          <h3>Favorites & Organization</h3>
+          <p>Star your best prompts for quick access. Build a personal library of proven, effective prompts.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="--accent: #EC4899;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <h3>Export & Backup</h3>
+          <p>Download your prompts as JSON anytime. Import on another device. Your data, your control.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section id="how-it-works" class="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">How It Works</span>
+        <h2 class="section-title">Start Saving in<br><span class="gradient-text">3 Simple Steps</span></h2>
+      </div>
+      
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Install Kayko</h3>
+            <p>Add the extension from Chrome Web Store. One click, no sign-up required.</p>
+          </div>
+          <div class="step-visual">
+            <div class="browser-mockup">
+              <div class="browser-bar">
+                <span class="browser-dot"></span>
+                <span class="browser-dot"></span>
+                <span class="browser-dot"></span>
+              </div>
+              <div class="browser-content">
+                <span class="install-btn">Add to Chrome</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-connector">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12l7 7 7-7"/>
+          </svg>
+        </div>
+
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>Visit Any AI Chat</h3>
+            <p>Go to ChatGPT, Claude, Gemini, or any supported platform. Kayko detects automatically.</p>
+          </div>
+          <div class="step-visual">
+            <div class="platform-icons">
+              <div class="platform-icon chatgpt-bg">ChatGPT</div>
+              <div class="platform-icon claude-bg">Claude</div>
+              <div class="platform-icon gemini-bg">Gemini</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-connector">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12l7 7 7-7"/>
+          </svg>
+        </div>
+
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>Type & Save Automatically</h3>
+            <p>A cute cat icon appears. Your prompts are saved as you type or when you press Enter.</p>
+          </div>
+          <div class="step-visual">
+            <div class="cat-demo">
+              <svg viewBox="0 0 64 64" width="48" height="48">
+                <path d="M8 24 L16 8 L24 24 Z" fill="#FFB84D"/>
+                <path d="M40 24 L48 8 L56 24 Z" fill="#FFB84D"/>
+                <ellipse cx="32" cy="38" rx="24" ry="20" fill="#FFB84D"/>
+                <ellipse cx="22" cy="36" rx="5" ry="6" fill="#2D3748"/>
+                <ellipse cx="42" cy="36" rx="5" ry="6" fill="#2D3748"/>
+                <path d="M32 42 L29 46 L35 46 Z" fill="#FF8FA3"/>
+              </svg>
+              <span class="saved-badge">✓ Saved!</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Platforms Section -->
+  <section id="platforms" class="platforms">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge">Compatibility</span>
+        <h2 class="section-title">Works With All Major<br><span class="gradient-text">AI Platforms</span></h2>
+        <p class="section-subtitle">One extension, all your favorite AI assistants</p>
+      </div>
+      
+      <div class="platforms-grid">
+        <div class="platform-card">
+          <div class="platform-logo chatgpt-bg">
+            <span>ChatGPT</span>
+          </div>
+          <p>OpenAI's ChatGPT</p>
+        </div>
+        <div class="platform-card">
+          <div class="platform-logo claude-bg">
+            <span>Claude</span>
+          </div>
+          <p>Anthropic Claude</p>
+        </div>
+        <div class="platform-card">
+          <div class="platform-logo gemini-bg">
+            <span>Gemini</span>
+          </div>
+          <p>Google Gemini</p>
+        </div>
+        <div class="platform-card">
+          <div class="platform-logo perplexity-bg">
+            <span>Perplexity</span>
+          </div>
+          <p>Perplexity AI</p>
+        </div>
+        <div class="platform-card">
+          <div class="platform-logo grok-bg">
+            <span>Grok</span>
+          </div>
+          <p>xAI Grok</p>
+        </div>
+        <div class="platform-card">
+          <div class="platform-logo aistudio-bg">
+            <span>AI Studio</span>
+          </div>
+          <p>Google AI Studio</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Privacy Section -->
+  <section id="privacy" class="privacy">
+    <div class="container">
+      <div class="privacy-content">
+        <div class="privacy-text">
+          <span class="section-badge">Privacy First</span>
+          <h2 class="section-title">Your Prompts Are<br><span class="gradient-text">100% Private</span></h2>
+          <p class="section-subtitle">We believe your AI conversations are personal. That's why Kayko stores everything locally on your computer—never on our servers.</p>
+          
+          <ul class="privacy-list">
+            <li>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+              <span>All data stored locally in your browser</span>
+            </li>
+            <li>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+              <span>No cloud uploads, no servers, no tracking</span>
+            </li>
+            <li>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+              <span>Works completely offline after installation</span>
+            </li>
+            <li>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+              <span>No accounts required—just install and use</span>
+            </li>
+            <li>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+              <span>Open source—verify the code yourself</span>
+            </li>
+          </ul>
+        </div>
+        <div class="privacy-visual">
+          <div class="shield-container">
+            <div class="shield">
+              <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <div class="shield-icon">🔒</div>
+            </div>
+            <div class="shield-label">Your Data Stays Here</div>
+            <div class="cloud-crossed">
+              <span>☁️</span>
+              <div class="cross-line"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Install CTA Section -->
+  <section id="install" class="install-cta">
+    <div class="container">
+      <div class="cta-content">
+        <h2>Ready to Never Lose a Prompt Again?</h2>
+        <p>Join thousands of AI power users who trust Kayko to save their best work.</p>
+        <a href="https://chromewebstore.google.com/detail/eofjfnikoflhggiepkpieelhnglmbfmf?utm_source=item-share-cb" target="_blank" class="btn btn-primary btn-large">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+            <circle cx="12" cy="12" r="4" fill="currentColor"/>
+          </svg>
+          Add to Chrome — Free Forever
+        </a>
+        <span class="cta-note">No sign-up • No credit card • No tracking</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <a href="#" class="footer-logo">
+            <svg viewBox="0 0 64 64" width="40" height="40">
+              <path d="M8 24 L16 8 L24 24 Z" fill="#FFB84D"/>
+              <path d="M40 24 L48 8 L56 24 Z" fill="#FFB84D"/>
+              <ellipse cx="32" cy="38" rx="24" ry="20" fill="#FFB84D"/>
+              <ellipse cx="22" cy="36" rx="5" ry="6" fill="#2D3748"/>
+              <ellipse cx="42" cy="36" rx="5" ry="6" fill="#2D3748"/>
+              <path d="M32 42 L29 46 L35 46 Z" fill="#FF8FA3"/>
+            </svg>
+            <span>Kayko</span>
+          </a>
+          <p>Never lose your AI prompts again.</p>
+        </div>
+        <div class="footer-links">
+          <div class="footer-column">
+            <h4>Product</h4>
+            <a href="#features">Features</a>
+            <a href="#how-it-works">How It Works</a>
+            <a href="#platforms">Platforms</a>
+            <a href="#install">Install</a>
+          </div>
+          <div class="footer-column">
+            <h4>Resources</h4>
+            <a href="https://github.com/Amirmoradi94/kayko" target="_blank">GitHub</a>
+            <a href="https://github.com/Amirmoradi94/kayko/issues" target="_blank">Report Bug</a>
+            <a href="../privacy-policy.html">Privacy Policy</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2024 Kayko. Open source under MIT License.</p>
+        <p>Made with 🐱 for the AI community</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
+

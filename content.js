@@ -323,7 +323,7 @@
       }
     });
     
-    // Click handler for cat face - open side panel
+    // Click handler for cat face - toggle side panel (open/close)
     icon.addEventListener('click', async (e) => {
       e.stopPropagation();
       
@@ -335,7 +335,7 @@
         return;
       }
       try {
-        chrome.runtime.sendMessage({ action: 'openSidePanel' });
+        chrome.runtime.sendMessage({ action: 'toggleSidePanel' });
       } catch (error) {
         extensionContextValid = false;
         if (!extensionContextWarningShown) {

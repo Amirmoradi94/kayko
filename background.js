@@ -1,5 +1,8 @@
 // Kayko Background Service Worker
 
+// Track side panel state per window
+let sidePanelOpenWindows = new Set();
+
 // Initialize extension
 chrome.runtime.onInstalled.addListener(async () => {
   //console.log('Kayko installed');
@@ -22,10 +25,32 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
 });
 
-// Handle messages from content script
+// Handle messages from content script and sidepanel
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'openSidePanel') {
     chrome.sidePanel.open({ windowId: sender.tab.windowId });
+    sidePanelOpenWindows.add(sender.tab.windowId);
+  } else if (request.action === 'toggleSidePanel') {
+    const windowId = sender.tab.windowId;
+    if (sidePanelOpenWindows.has(windowId)) {
+      // Panel is open, send close message to all sidepanels
+      chrome.runtime.sendMessage({ action: 'closeSidePanel' }).catch(() => {});
+      sidePanelOpenWindows.delete(windowId);
+    } else {
+      // Panel is closed, open it
+      chrome.sidePanel.open({ windowId: windowId });
+      sidePanelOpenWindows.add(windowId);
+    }
+  } else if (request.action === 'sidePanelOpened') {
+    // Sidepanel reports it's open
+    if (request.windowId) {
+      sidePanelOpenWindows.add(request.windowId);
+    }
+  } else if (request.action === 'sidePanelClosed') {
+    // Sidepanel reports it's closed
+    if (request.windowId) {
+      sidePanelOpenWindows.delete(request.windowId);
+    }
   } else if (request.action === 'updateBadge') {
     updateBadgeCount();
   }

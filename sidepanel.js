@@ -6,6 +6,32 @@ let settings = {};
 let showFavoritesOnly = false;
 let selectedPromptIds = new Set();
 
+// Report that sidepanel is opened and listen for close message
+(async function() {
+  try {
+    // Get current window ID and report opened
+    const currentWindow = await chrome.windows.getCurrent();
+    chrome.runtime.sendMessage({ action: 'sidePanelOpened', windowId: currentWindow.id });
+    
+    // Listen for close message from background
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      if (request.action === 'closeSidePanel') {
+        // Report closing before actually closing
+        chrome.runtime.sendMessage({ action: 'sidePanelClosed', windowId: currentWindow.id }).catch(() => {});
+        // Close the sidepanel
+        window.close();
+      }
+    });
+    
+    // Report closed when window unloads
+    window.addEventListener('beforeunload', () => {
+      chrome.runtime.sendMessage({ action: 'sidePanelClosed', windowId: currentWindow.id }).catch(() => {});
+    });
+  } catch (error) {
+    console.error('Error setting up sidepanel messaging:', error);
+  }
+})();
+
 // Detect current platform from active tab
 async function detectCurrentPlatform() {
   try {
