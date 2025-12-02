@@ -23,7 +23,7 @@ const filesToInclude = [
   'LICENSE'
 ];
 
-console.log('Packaging Kayko extension...\n');
+//console.log('Packaging Kayko extension...\n');
 
 // Create dist directory if it doesn't exist
 if (!fs.existsSync(distDir)) {
@@ -67,18 +67,18 @@ try {
     execSync(`zip -r "${zipPath}" ${files}`, { cwd: __dirname });
   }
   
-  console.log('✓ Extension packaged successfully!');
-  console.log(`\nPackage location: ${zipPath}`);
-  console.log('\nTo install:');
-  console.log('1. Open Chrome/Edge and go to chrome://extensions/');
-  console.log('2. Enable "Developer mode"');
-  console.log('3. Click "Load unpacked" and select the kayko directory');
-  console.log('   OR upload the zip file to Chrome Web Store for distribution\n');
+  //console.log('✓ Extension packaged successfully!');
+  //console.log(`\nPackage location: ${zipPath}`);
+  //console.log('\nTo install:');
+  //console.log('1. Open Chrome/Edge and go to chrome://extensions/');
+  //console.log('2. Enable "Developer mode"');
+  //console.log('3. Click "Load unpacked" and select the kayko directory');
+  //console.log('   OR upload the zip file to Chrome Web Store for distribution\n');
   
 } catch (error) {
   console.error('Error creating package:', error.message);
-  console.log('\nManual packaging instructions:');
-  console.log('1. Create a zip file containing all extension files');
-  console.log('2. Upload to Chrome Web Store or distribute directly\n');
+  //console.log('\nManual packaging instructions:');
+  //console.log('1. Create a zip file containing all extension files');
+  //console.log('2. Upload to Chrome Web Store or distribute directly\n');
 }
 

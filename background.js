@@ -2,7 +2,7 @@
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('Kayko installed');
+  //console.log('Kayko installed');
   
   // Set default settings
   const result = await chrome.storage.local.get('settings');

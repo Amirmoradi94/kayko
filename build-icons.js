@@ -16,7 +16,7 @@ try {
     process.exit(1);
   }
   
-  console.log('Building icon files...');
+  //console.log('Building icon files...');
   
   Promise.all(
     sizes.map(size => {
@@ -25,22 +25,22 @@ try {
         .resize(size, size)
         .png()
         .toFile(outputPath)
-        .then(() => console.log(`✓ Created icon${size}.png`));
+        .then(() => //console.log(`✓ Created icon${size}.png`));
     })
   )
   .then(() => {
-    console.log('\n✓ All icons built successfully!');
+    //console.log('\n✓ All icons built successfully!');
   })
   .catch(err => {
-    console.error('Error building icons:', err);
+    //console.error('Error building icons:', err);
     process.exit(1);
   });
   
 } catch (error) {
-  console.log('\n⚠️  Sharp package not found. You can either:');
-  console.log('  1. Install sharp: npm install');
-  console.log('  2. Manually create PNG icons from icons/icon.svg at sizes: 16x16, 32x32, 48x48, 128x128');
-  console.log('  3. Use online SVG to PNG converter tools\n');
+  //console.log('\n⚠️  Sharp package not found. You can either:');
+  //console.log('  1. Install sharp: npm install');
+  //console.log('  2. Manually create PNG icons from icons/icon.svg at sizes: 16x16, 32x32, 48x48, 128x128');
+  //console.log('  3. Use online SVG to PNG converter tools\n');
   
   // Create placeholder PNG files with instructions
   const sizes = [16, 32, 48, 128];
@@ -51,6 +51,6 @@ try {
     );
   });
   
-  console.log('Created placeholder files in icons/ directory');
+  //console.log('Created placeholder files in icons/ directory');
 }
 

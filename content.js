@@ -4,7 +4,7 @@
 
   // Version check - helps identify if old cached code is running
   const KAYKO_VERSION = '1.0.1';
-  console.log('Kayko: Content script v' + KAYKO_VERSION + ' loaded');
+  //console.log('Kayko: Content script v' + KAYKO_VERSION + ' loaded');
 
   const DEBOUNCE_DELAY = 1000; // 1 second
   const ICON_SIZE = 24;
@@ -62,7 +62,7 @@
     if (typeof chrome === 'undefined' || !chrome.runtime || typeof chrome.runtime.getURL !== 'function') {
       extensionContextValid = false;
       if (!extensionContextWarningShown) {
-        console.warn('Kayko: Extension context invalidated. Please refresh this page (F5) to restore functionality.');
+        //console.warn('Kayko: Extension context invalidated. Please refresh this page (F5) to restore functionality.');
         showExtensionContextNotification();
         extensionContextWarningShown = true;
       }
@@ -76,7 +76,7 @@
       extensionContextValid = false;
       // Only show warning once per page load to avoid spam
       if (!extensionContextWarningShown) {
-        console.warn('Kayko: Extension context invalidated. Please refresh this page (F5) to restore functionality.');
+        //console.warn('Kayko: Extension context invalidated. Please refresh this page (F5) to restore functionality.');
         showExtensionContextNotification();
         extensionContextWarningShown = true;
       }
@@ -267,7 +267,7 @@
           : 'Kayko - Auto-save OFF';
           
       } catch (error) {
-        console.error('Kayko: Error toggling auto-save', error);
+        //console.error('Kayko: Error toggling auto-save', error);
       }
     });
     
@@ -299,7 +299,7 @@
               chrome.runtime.sendMessage({ action: 'openSettings' });
             }, 500);
           } catch (error) {
-            console.error('Kayko: Error opening settings', error);
+            //console.error('Kayko: Error opening settings', error);
           }
           setTimeout(() => {
             rightToggle.title = 'Enhance prompt with AI';
@@ -315,7 +315,7 @@
         await enhancePromptInline(textarea, text, settings.openaiApiKey, rightToggle);
         
       } catch (error) {
-        console.error('Kayko: Error enhancing prompt', error);
+        //console.error('Kayko: Error enhancing prompt', error);
         rightToggle.title = 'Enhancement failed';
         setTimeout(() => {
           rightToggle.title = 'Enhance prompt with AI';
@@ -499,7 +499,7 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       icon.classList.remove('idle', 'saving', 'saved');
       icon.classList.add(state);
       // CSS handles all animations for the cat face SVG
-      console.log('Kayko: Icon state changed to', state);
+      //console.log('Kayko: Icon state changed to', state);
     } catch (error) {
       console.error('Kayko: Error setting icon state', error);
     }
@@ -508,7 +508,12 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
   // Save prompt to storage
   // forceSave: true = always save (used for Enter key), false = check for duplicates/substrings
   async function savePrompt(textarea, text, forceSave = false) {
-    if (!text || text.trim().length < 3) return; // Don't save very short text
+    if (!text || text.trim().length < 3) {
+      //console.log('Kayko: Text too short to save:', text?.length || 0, 'chars');
+      return false; // Don't save very short text
+    }
+    
+    //console.log('Kayko: Attempting to save prompt:', text.substring(0, 50) + '...', 'forceSave:', forceSave);
 
     const prompt = {
       id: Date.now() + Math.random().toString(36).substr(2, 9),
@@ -544,6 +549,7 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       if (prompts.length > 0) {
         const lastPrompt = prompts[0];
         if (lastPrompt.text === text && lastPrompt.platform === prompt.platform) {
+          //console.log('Kayko: Duplicate detected, skipping save');
           return false; // Don't save duplicate
         }
       }
@@ -632,6 +638,7 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       }
 
       await chrome.storage.local.set({ prompts });
+      //console.log('Kayko: Prompt saved successfully! Total prompts:', prompts.length);
       
       // Update badge count
       try {
@@ -863,9 +870,11 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       // Add Enter key listener to save prompt when Enter is pressed
       const enterKeyHandler = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
+          //console.log('Kayko: Enter key pressed!');
           try {
             // Capture text immediately before it might be cleared
             const text = getTextContent(textarea);
+            //console.log('Kayko: Captured text on Enter:', text?.substring(0, 50) || '(empty)');
             if (text && text.trim().length >= 3) {
               // Save the prompt asynchronously (don't block Enter key)
               const innerIcon = getInnerIcon(icon);
@@ -1095,7 +1104,7 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
         mutationObserver 
       });
       
-      console.log('Kayko: Tracking textarea', textarea);
+      //console.log('Kayko: Tracking textarea', textarea);
     } catch (error) {
       console.error('Kayko: Failed to track textarea', error);
     }
@@ -1172,16 +1181,16 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       const meetsAIStudioSize = isAIStudioInput && isVisible && rect.width > 50 && rect.height > 15;
       
       if (meetsSize || meetsAIStudioSize) {
-        console.log('Kayko: Detected textarea', {
-          element: textarea,
-          rect: rect,
-          tagName: textarea.tagName,
-          className: className,
-          id: id,
-          contentEditable: isContentEditable,
-          contentEditableAttr: textarea.getAttribute('contenteditable'),
-          isKnownChatUI: isKnownChatUI
-        });
+        //console.log('Kayko: Detected textarea', {
+          //element: textarea,
+          //rect: rect,
+          //tagName: textarea.tagName,
+          //className: className,
+          //id: id,
+          //contentEditable: isContentEditable,
+          //contentEditableAttr: textarea.getAttribute('contenteditable'),
+          //isKnownChatUI: isKnownChatUI
+        //});
         try {
           trackTextarea(textarea);
         } catch (error) {
@@ -1196,11 +1205,11 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
     try {
       // Only run on LLM websites
       if (!isLLMWebsite()) {
-        console.log('Kayko: Not an LLM website, skipping initialization');
+        //console.log('Kayko: Not an LLM website, skipping initialization');
         return;
       }
       
-      console.log('Kayko: Content script initialized on', window.location.hostname);
+      //console.log('Kayko: Content script initialized on', window.location.hostname);
       
       // Clean up any existing icons first (in case of page reactivation)
       cleanupIcons();
@@ -1211,7 +1220,7 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       // Delayed detection for dynamically loaded content
       setTimeout(() => {
         try {
-          console.log('Kayko: Running delayed detection (500ms)');
+          //console.log('Kayko: Running delayed detection (500ms)');
           detectTextareas();
         } catch (error) {
           console.error('Kayko: Error in delayed detection (500ms)', error);
@@ -1220,7 +1229,7 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       
       setTimeout(() => {
         try {
-          console.log('Kayko: Running delayed detection (1s)');
+          //console.log('Kayko: Running delayed detection (1s)');
           detectTextareas();
         } catch (error) {
           console.error('Kayko: Error in delayed detection (1s)', error);
@@ -1229,7 +1238,7 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       
       setTimeout(() => {
         try {
-          console.log('Kayko: Running delayed detection (2s)');
+          //console.log('Kayko: Running delayed detection (2s)');
           detectTextareas();
         } catch (error) {
           console.error('Kayko: Error in delayed detection (2s)', error);
@@ -1238,7 +1247,7 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       
       setTimeout(() => {
         try {
-          console.log('Kayko: Running delayed detection (3s)');
+          //console.log('Kayko: Running delayed detection (3s)');
           detectTextareas();
         } catch (error) {
           console.error('Kayko: Error in delayed detection (3s)', error);
@@ -1289,9 +1298,9 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
 
   // Expose manual trigger for debugging
   window.kaykoDetect = function() {
-    console.log('Kayko: Manual detection triggered');
+    //console.log('Kayko: Manual detection triggered');
     detectTextareas();
-    console.log('Kayko: Currently tracking', trackedIcons.size, 'icons');
+    //console.log('Kayko: Currently tracking', trackedIcons.size, 'icons');
   };
 
   // Start when DOM is ready

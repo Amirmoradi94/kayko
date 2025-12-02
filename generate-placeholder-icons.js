@@ -18,9 +18,9 @@ Object.entries(iconData).forEach(([size, base64Data]) => {
   const buffer = Buffer.from(base64Data, 'base64');
   const filePath = path.join(__dirname, 'icons', `icon${size}.png`);
   fs.writeFileSync(filePath, buffer);
-  console.log(`✓ Created icon${size}.png`);
+  //console.log(`✓ Created icon${size}.png`);
 });
 
-console.log('\n✓ All placeholder icons created!');
-console.log('Note: These are simple placeholders. Replace with proper icons from icon.svg for production.\n');
+//console.log('\n✓ All placeholder icons created!');
+//console.log('Note: These are simple placeholders. Replace with proper icons from icon.svg for production.\n');
 
