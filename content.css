@@ -1,271 +1,390 @@
-/* Kayko Content Script Styles */
+/* Kayko Content Script Styles - Cat with Ear Toggles Design */
+
+/* ============================================
+   CAT FACE ICON
+   ============================================ */
+
+.kayko-icon-wrapper {
+  position: absolute;
+  display: inline-block;
+  width: 64px;
+  height: 64px;
+  z-index: 10000;
+}
 
 .kayko-icon {
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   cursor: pointer;
   background: transparent;
-  border-radius: 50%;
-  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
   z-index: 10000;
   border: none;
-  opacity: 0.9;
+  opacity: 0.85;
+  position: relative;
 }
 
-.kayko-icon-wrapper:hover .kayko-icon {
-  transform: scale(1.15);
-  box-shadow: none;
-  opacity: 1;
-}
-
-.kayko-icon img {
-  width: 48px;
-  height: 48px;
+.kayko-icon img,
+.kayko-icon svg {
+  width: 56px;
+  height: 56px;
   display: block;
   transition: all 0.3s ease;
   object-fit: contain;
 }
 
-/* Idle state - original colors */
-.kayko-icon.idle {
-  opacity: 0.8;
-}
-
-.kayko-icon.idle img {
-  filter: none;
+/* Hover effect - cat gets excited */
+.kayko-icon-wrapper:hover .kayko-icon {
+  transform: scale(1.1);
   opacity: 1;
 }
 
-/* Saving state - cat running animation */
+/* ============================================
+   IDLE STATE - Subtle blink animation
+   ============================================ */
+
+.kayko-icon.idle {
+  opacity: 0.85;
+  animation: kayko-blink 4s ease-in-out infinite;
+}
+
+@keyframes kayko-blink {
+  0%, 45%, 55%, 100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* ============================================
+   SAVING STATE - Excited bouncing
+   ============================================ */
+
 .kayko-icon.saving {
-  animation: kayko-running 0.6s ease-in-out infinite;
+  animation: kayko-saving 0.5s ease-in-out infinite;
 }
 
-.kayko-icon.saving img {
-  filter: none;
-  animation: none;
-}
-
-/* Saved state - green with checkmark effect */
-.kayko-icon.saved {
-  animation: kayko-success 0.6s ease;
-}
-
-.kayko-icon.saved img {
-  filter: none;
-  animation: kayko-checkmark 0.6s ease;
-}
-
-@keyframes kayko-running {
+@keyframes kayko-saving {
   0%, 100% {
-    transform: translateY(0) translateX(0) rotate(0deg);
+    transform: translateY(0) rotate(0deg);
   }
   25% {
-    transform: translateY(-8px) translateX(2px) rotate(-5deg);
-  }
-  50% {
-    transform: translateY(0) translateX(0) rotate(0deg);
+    transform: translateY(-6px) rotate(-5deg);
   }
   75% {
-    transform: translateY(-8px) translateX(-2px) rotate(5deg);
+    transform: translateY(-6px) rotate(5deg);
   }
 }
 
-@keyframes kayko-pulse {
-  0%, 100% {
-    opacity: 0.8;
+/* ============================================
+   SAVED STATE - Happy bounce
+   ============================================ */
+
+.kayko-icon.saved {
+  animation: kayko-saved 0.6s ease;
+}
+
+@keyframes kayko-saved {
+  0% {
     transform: scale(1);
   }
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-}
-
-@keyframes kayko-checkmark {
-  0% {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  50% {
+  30% {
     transform: scale(1.2);
   }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes kayko-success {
-  0% {
-    opacity: 0.8;
-    transform: scale(1);
-  }
   50% {
-    opacity: 1;
+    transform: scale(0.95);
+  }
+  70% {
     transform: scale(1.1);
   }
   100% {
-    opacity: 0.8;
     transform: scale(1);
   }
 }
 
-/* Icon Wrapper */
-.kayko-icon-wrapper {
-  position: relative;
-  display: inline-block;
-  width: 56px;
-  height: 56px;
-}
+/* ============================================
+   EAR TOGGLES CONTAINER
+   ============================================ */
 
-/* Ring (appears on hover) */
-.kayko-icon-ring {
+.kayko-ear-toggles {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  border: 2px solid;
-  opacity: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
-  transition: opacity 0.3s ease, transform 0.3s ease;
   z-index: 10001;
 }
 
-.kayko-icon-wrapper:hover .kayko-icon-ring {
-  opacity: 1;
-}
+/* ============================================
+   LEFT EAR TOGGLE - Auto-save (on/off)
+   ============================================ */
 
-/* Ring states */
-.kayko-icon-ring.ring-enabled {
-  border-color: #10B981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
-}
-
-.kayko-icon-ring.ring-disabled {
-  border-color: #94A3B8;
-  box-shadow: 0 0 8px rgba(148, 163, 184, 0.3);
-}
-
-.kayko-icon-ring.ring-animate {
-  animation: ring-pulse 0.3s ease;
-}
-
-@keyframes ring-pulse {
-  0%, 100% {
-    transform: translate(-50%, -50%) scale(1);
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.1);
-  }
-}
-
-/* Power Button at 3 o'clock position */
-.kayko-auto-save-toggle {
+.kayko-toggle-left {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(calc(-50% + 40px), -50%);
-  width: 20px;
-  height: 20px;
+  top: -10px;
+  left: -4px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   border: 2px solid;
-  background: var(--bg-primary, #ffffff);
+  background: #1a1a2e;
   cursor: pointer;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   pointer-events: auto;
   z-index: 10002;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transform: scale(0) translateY(10px);
 }
 
-.kayko-auto-save-toggle:hover {
-  transform: translate(calc(-50% + 40px), -50%) scale(1.15);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+.kayko-icon-wrapper:hover .kayko-toggle-left {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition-delay: 0.05s;
 }
 
-/* Power button states */
-.kayko-auto-save-toggle.toggle-on {
-  border-color: #EF4444;
-  background: #EF4444;
+.kayko-toggle-left:hover {
+  transform: scale(1.2) translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-.kayko-auto-save-toggle.toggle-on::before {
+/* Auto-save ON state - Green with power icon */
+.kayko-toggle-left.toggle-on {
+  border-color: #10B981;
+  background: #10B981;
+  position: relative;
+}
+
+.kayko-toggle-left.toggle-on::before {
   content: '';
   position: absolute;
-  width: 2px;
-  height: 6px;
+  width: 3px;
+  height: 8px;
   background: white;
-  top: -1px;
+  top: 3px;
   left: 50%;
   transform: translateX(-50%);
-  border-radius: 0;
+  border-radius: 2px;
+  z-index: 2;
 }
 
-.kayko-auto-save-toggle.toggle-on::after {
+.kayko-toggle-left.toggle-on::after {
   content: '';
   position: absolute;
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  border: 2px solid white;
+  border: 2.5px solid white;
   background: transparent;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -40%);
+  z-index: 1;
+  box-sizing: border-box;
 }
 
-.kayko-auto-save-toggle.toggle-off {
-  border-color: #94A3B8;
-  background: var(--bg-primary, #ffffff);
+/* Auto-save OFF state - Gray */
+.kayko-toggle-left.toggle-off {
+  border-color: #64748B;
+  background: #475569;
+  position: relative;
 }
 
-.kayko-auto-save-toggle.toggle-off::before {
+.kayko-toggle-left.toggle-off::before {
   content: '';
   position: absolute;
-  width: 2px;
-  height: 6px;
-  background: #94A3B8;
-  top: -1px;
+  width: 3px;
+  height: 8px;
+  background: #E2E8F0;
+  top: 3px;
   left: 50%;
   transform: translateX(-50%);
-  border-radius: 0;
+  border-radius: 2px;
+  z-index: 2;
 }
 
-.kayko-auto-save-toggle.toggle-off::after {
+.kayko-toggle-left.toggle-off::after {
   content: '';
   position: absolute;
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  border: 2px solid #94A3B8;
+  border: 2.5px solid #E2E8F0;
   background: transparent;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -40%);
+  z-index: 1;
+  box-sizing: border-box;
 }
 
-/* Toggle feedback animation */
-.kayko-icon-wrapper.toggle-feedback {
-  animation: toggle-feedback 0.3s ease;
+/* ============================================
+   RIGHT EAR TOGGLE - Enhance prompt
+   ============================================ */
+
+.kayko-toggle-right {
+  position: absolute;
+  top: -10px;
+  right: -4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #A855F7;
+  background: #1a1a2e;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: auto;
+  z-index: 10002;
+  box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);
+  opacity: 0;
+  transform: scale(0) translateY(10px);
 }
 
-@keyframes toggle-feedback {
+.kayko-icon-wrapper:hover .kayko-toggle-right {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition-delay: 0.1s;
+}
+
+.kayko-toggle-right:hover {
+  transform: scale(1.2) translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.5);
+  background: #A855F7;
+}
+
+/* Sparkle icon for enhance */
+.kayko-toggle-right::before {
+  content: '✦';
+  font-size: 14px;
+  color: #A855F7;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.kayko-toggle-right:hover::before {
+  color: white;
+  transform: rotate(72deg) scale(1.1);
+}
+
+/* ============================================
+   TOOLTIPS
+   ============================================ */
+
+.kayko-toggle-left::after,
+.kayko-toggle-right .kayko-tooltip {
+  display: none;
+}
+
+.kayko-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  margin-bottom: 4px;
+}
+
+.kayko-toggle-left:hover .kayko-tooltip,
+.kayko-toggle-right:hover .kayko-tooltip {
+  opacity: 1;
+}
+
+/* ============================================
+   TOGGLE FEEDBACK ANIMATION
+   ============================================ */
+
+.kayko-toggle-left.toggle-feedback,
+.kayko-toggle-right.toggle-feedback {
+  animation: toggle-pop 0.3s ease;
+}
+
+@keyframes toggle-pop {
   0%, 100% {
     transform: scale(1);
   }
   50% {
-    transform: scale(1.1);
+    transform: scale(1.3);
   }
 }
 
+/* ============================================
+   LEGACY RING SUPPORT (hidden now)
+   ============================================ */
+
+.kayko-icon-ring {
+  display: none;
+}
+
+.kayko-auto-save-toggle {
+  display: none;
+}
+
+/* ============================================
+   EARS WIGGLE ON HOVER
+   ============================================ */
+
+.kayko-icon-wrapper:hover .kayko-icon svg .cat-ear-left,
+.kayko-icon-wrapper:hover .kayko-icon img {
+  animation: ear-wiggle-left 0.4s ease;
+}
+
+@keyframes ear-wiggle-left {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-5deg);
+  }
+  75% {
+    transform: rotate(5deg);
+  }
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+@media (max-width: 768px) {
+  .kayko-icon-wrapper {
+    width: 52px;
+    height: 52px;
+  }
+  
+  .kayko-icon {
+    width: 52px;
+    height: 52px;
+  }
+  
+  .kayko-icon img,
+  .kayko-icon svg {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .kayko-toggle-left,
+  .kayko-toggle-right {
+    width: 18px;
+    height: 18px;
+  }
+}

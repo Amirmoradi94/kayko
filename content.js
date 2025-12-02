@@ -156,7 +156,7 @@
     }
   }
 
-  // Create and inject the Kayko icon
+  // Create and inject the Kayko icon - Cat with Ear Toggles Design
   function createIcon(textarea) {
     // Create wrapper container
     const iconWrapper = document.createElement('div');
@@ -165,47 +165,85 @@
     const icon = document.createElement('div');
     icon.className = 'kayko-icon idle';
     
-    // Create img element that we can swap
-    const img = document.createElement('img');
-    img.alt = 'Kayko';
-    img.className = 'kayko-icon-img';
+    // Create cat face SVG inline for better control
+    const catSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    catSvg.setAttribute('viewBox', '0 0 64 64');
+    catSvg.setAttribute('width', '56');
+    catSvg.setAttribute('height', '56');
+    catSvg.innerHTML = `
+      <!-- Left Ear -->
+      <path class="cat-ear cat-ear-left" d="M8 24 L16 8 L24 24 Z" fill="#FFB84D" stroke="#E59400" stroke-width="1.5"/>
+      <path class="cat-ear-inner" d="M12 22 L16 12 L20 22 Z" fill="#FFD699"/>
+      
+      <!-- Right Ear -->
+      <path class="cat-ear cat-ear-right" d="M40 24 L48 8 L56 24 Z" fill="#FFB84D" stroke="#E59400" stroke-width="1.5"/>
+      <path class="cat-ear-inner" d="M44 22 L48 12 L52 22 Z" fill="#FFD699"/>
+      
+      <!-- Head -->
+      <ellipse class="cat-head" cx="32" cy="38" rx="24" ry="20" fill="#FFB84D" stroke="#E59400" stroke-width="1.5"/>
+      
+      <!-- Left Eye -->
+      <ellipse class="cat-eye cat-eye-left" cx="22" cy="36" rx="5" ry="6" fill="#2D3748"/>
+      <ellipse class="cat-eye-shine" cx="20" cy="34" rx="2" ry="2" fill="white" opacity="0.8"/>
+      
+      <!-- Right Eye -->
+      <ellipse class="cat-eye cat-eye-right" cx="42" cy="36" rx="5" ry="6" fill="#2D3748"/>
+      <ellipse class="cat-eye-shine" cx="40" cy="34" rx="2" ry="2" fill="white" opacity="0.8"/>
+      
+      <!-- Nose -->
+      <path class="cat-nose" d="M32 42 L29 46 L35 46 Z" fill="#FF8FA3"/>
+      
+      <!-- Mouth (omega shape ω) -->
+      <path class="cat-mouth" d="M26 48 Q29 52 32 48 Q35 52 38 48" fill="none" stroke="#2D3748" stroke-width="1.5" stroke-linecap="round"/>
+      
+      <!-- Whiskers Left -->
+      <line class="cat-whisker" x1="4" y1="40" x2="18" y2="42" stroke="#E59400" stroke-width="1" stroke-linecap="round"/>
+      <line class="cat-whisker" x1="4" y1="46" x2="18" y2="46" stroke="#E59400" stroke-width="1" stroke-linecap="round"/>
+      <line class="cat-whisker" x1="4" y1="52" x2="18" y2="50" stroke="#E59400" stroke-width="1" stroke-linecap="round"/>
+      
+      <!-- Whiskers Right -->
+      <line class="cat-whisker" x1="60" y1="40" x2="46" y2="42" stroke="#E59400" stroke-width="1" stroke-linecap="round"/>
+      <line class="cat-whisker" x1="60" y1="46" x2="46" y2="46" stroke="#E59400" stroke-width="1" stroke-linecap="round"/>
+      <line class="cat-whisker" x1="60" y1="52" x2="46" y2="50" stroke="#E59400" stroke-width="1" stroke-linecap="round"/>
+    `;
     
-    // Set initial icon (idle state) - using custom idle icon
-    const iconUrl = getExtensionURL('icons/idle-icon.png');
-    if (iconUrl) {
-      img.src = iconUrl;
-    }
-    
-    icon.appendChild(img);
+    icon.appendChild(catSvg);
     icon.title = 'Kayko - Click to view saved prompts';
     
-    // Create ring element (appears on hover)
-    const ring = document.createElement('div');
-    ring.className = 'kayko-icon-ring';
+    // Create ear toggles container
+    const earToggles = document.createElement('div');
+    earToggles.className = 'kayko-ear-toggles';
     
-    // Create toggle switch at 3 o'clock position
-    const toggleSwitch = document.createElement('button');
-    toggleSwitch.className = 'kayko-auto-save-toggle';
-    toggleSwitch.type = 'button';
-    toggleSwitch.setAttribute('aria-label', 'Toggle auto-save');
+    // Left ear toggle - Auto-save on/off
+    const leftToggle = document.createElement('button');
+    leftToggle.className = 'kayko-toggle-left toggle-off';
+    leftToggle.type = 'button';
+    leftToggle.setAttribute('aria-label', 'Toggle auto-save');
+    leftToggle.title = 'Auto-save: OFF';
     
-    // Add toggle switch to ring
-    ring.appendChild(toggleSwitch);
+    // Right ear toggle - Enhance prompt
+    const rightToggle = document.createElement('button');
+    rightToggle.className = 'kayko-toggle-right';
+    rightToggle.type = 'button';
+    rightToggle.setAttribute('aria-label', 'Enhance prompt');
+    rightToggle.title = 'Enhance prompt with AI';
     
-    // Add ring to wrapper
+    earToggles.appendChild(leftToggle);
+    earToggles.appendChild(rightToggle);
+    
+    // Add elements to wrapper
     iconWrapper.appendChild(icon);
-    iconWrapper.appendChild(ring);
+    iconWrapper.appendChild(earToggles);
     
-    // Update ring state based on current auto-save setting
-    updateRingState(ring, toggleSwitch);
+    // Update left toggle state based on current auto-save setting
+    updateToggleState(leftToggle);
     
-    // Toggle switch click handler
-    toggleSwitch.addEventListener('click', async (e) => {
+    // Left toggle click handler - Toggle auto-save
+    leftToggle.addEventListener('click', async (e) => {
       e.stopPropagation();
       e.preventDefault();
       
       try {
-        // Get current settings (preserve all existing settings)
         const result = await chrome.storage.local.get('settings');
         const currentSettings = result.settings || { 
           maxPrompts: 100,
@@ -213,52 +251,84 @@
           openaiApiKey: ''
         };
         
-        // Toggle auto-save while preserving all other settings
         const updatedSettings = {
           ...currentSettings,
           autoSaveEnabled: !currentSettings.autoSaveEnabled
         };
         
-        // Save updated settings
         await chrome.storage.local.set({ settings: updatedSettings });
         
-        // Update ring state with animation
-        updateRingState(ring, toggleSwitch, true);
+        // Update toggle state with animation
+        updateToggleState(leftToggle, true);
         
         // Update icon title
-        const newAutoSaveEnabled = updatedSettings.autoSaveEnabled;
-        icon.title = newAutoSaveEnabled 
-          ? 'Kayko - Click to view saved prompts' 
-          : 'Kayko - Click to manually save prompt';
-        
-        // Show brief visual feedback
-        iconWrapper.classList.add('toggle-feedback');
-        setTimeout(() => {
-          iconWrapper.classList.remove('toggle-feedback');
-        }, 300);
+        icon.title = updatedSettings.autoSaveEnabled 
+          ? 'Kayko - Auto-save ON' 
+          : 'Kayko - Auto-save OFF';
+          
       } catch (error) {
         console.error('Kayko: Error toggling auto-save', error);
       }
     });
     
-    // Click handler - behavior depends on auto-save setting
+    // Right toggle click handler - Enhance prompt
+    rightToggle.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      
+      try {
+        const text = getTextContent(textarea);
+        if (!text || text.trim().length < 3) {
+          rightToggle.title = 'Type at least 3 characters first';
+          setTimeout(() => {
+            rightToggle.title = 'Enhance prompt with AI';
+          }, 2000);
+          return;
+        }
+        
+        // Check for OpenAI API key
+        const result = await chrome.storage.local.get('settings');
+        const settings = result.settings || {};
+        
+        if (!settings.openaiApiKey) {
+          rightToggle.title = 'Set OpenAI API key in settings first';
+          // Open side panel to settings
+          try {
+            chrome.runtime.sendMessage({ action: 'openSidePanel' });
+            setTimeout(() => {
+              chrome.runtime.sendMessage({ action: 'openSettings' });
+            }, 500);
+          } catch (error) {
+            console.error('Kayko: Error opening settings', error);
+          }
+          setTimeout(() => {
+            rightToggle.title = 'Enhance prompt with AI';
+          }, 3000);
+          return;
+        }
+        
+        // Show enhancing state
+        rightToggle.classList.add('toggle-feedback');
+        rightToggle.title = 'Enhancing...';
+        
+        // Call enhance function (reuse existing logic)
+        await enhancePromptInline(textarea, text, settings.openaiApiKey, rightToggle);
+        
+      } catch (error) {
+        console.error('Kayko: Error enhancing prompt', error);
+        rightToggle.title = 'Enhancement failed';
+        setTimeout(() => {
+          rightToggle.title = 'Enhance prompt with AI';
+        }, 2000);
+      }
+    });
+    
+    // Click handler for cat face - open side panel
     icon.addEventListener('click', async (e) => {
       e.stopPropagation();
       
-      // Check if auto-save is enabled
-      const autoSaveEnabled = await isAutoSaveEnabled();
-      
-      if (!autoSaveEnabled) {
-        // Auto-save is disabled - manual save on click
-        manualSave(textarea, icon);
-        return;
-      }
-      
-      // Auto-save is enabled - open side panel on click
-      // Check if extension context is valid before trying to send message
       if (!extensionContextValid || typeof chrome === 'undefined' || !chrome.runtime || typeof chrome.runtime.sendMessage !== 'function') {
         if (!extensionContextWarningShown) {
-          console.warn('Kayko: Extension context invalidated. Please refresh this page (F5) to restore functionality.');
           showExtensionContextNotification();
           extensionContextWarningShown = true;
         }
@@ -269,7 +339,6 @@
       } catch (error) {
         extensionContextValid = false;
         if (!extensionContextWarningShown) {
-          console.warn('Kayko: Extension context invalidated. Please refresh this page (F5) to restore functionality.');
           showExtensionContextNotification();
           extensionContextWarningShown = true;
         }
@@ -279,34 +348,106 @@
     return iconWrapper;
   }
   
-  // Update ring state based on auto-save setting
-  async function updateRingState(ring, toggleSwitch, animate = false) {
+  // Update toggle state based on auto-save setting
+  async function updateToggleState(toggle, animate = false) {
     try {
       const result = await chrome.storage.local.get('settings');
       const settings = result.settings || { autoSaveEnabled: false };
-      const autoSaveEnabled = settings.autoSaveEnabled !== false;
+      const autoSaveEnabled = settings.autoSaveEnabled === true;
       
-      // Update ring appearance (colored when on, grey when off)
-      if (autoSaveEnabled) {
-        ring.classList.add('ring-enabled');
-        ring.classList.remove('ring-disabled');
-      } else {
-        ring.classList.add('ring-disabled');
-        ring.classList.remove('ring-enabled');
-      }
-      
-      // Update toggle switch state
-      toggleSwitch.classList.toggle('toggle-on', autoSaveEnabled);
-      toggleSwitch.classList.toggle('toggle-off', !autoSaveEnabled);
+      toggle.classList.toggle('toggle-on', autoSaveEnabled);
+      toggle.classList.toggle('toggle-off', !autoSaveEnabled);
+      toggle.title = autoSaveEnabled ? 'Auto-save: ON' : 'Auto-save: OFF';
       
       if (animate) {
-        ring.classList.add('ring-animate');
+        toggle.classList.add('toggle-feedback');
         setTimeout(() => {
-          ring.classList.remove('ring-animate');
+          toggle.classList.remove('toggle-feedback');
         }, 300);
       }
     } catch (error) {
-      console.error('Kayko: Error updating ring state', error);
+      console.error('Kayko: Error updating toggle state', error);
+    }
+  }
+  
+  // Enhance prompt inline and insert back into textarea
+  async function enhancePromptInline(textarea, text, apiKey, toggle) {
+    try {
+      const systemPrompt = `You are an expert prompt engineer. Transform the user's prompt into a better version that will get superior AI responses.
+
+WHAT TO DO:
+- Rewrite the prompt with more clarity and detail
+- Make reasonable assumptions to fill in gaps (don't ask questions!)
+- Add helpful context, constraints, and output format
+- Structure complex requests with clear steps
+- Keep the original intent but make it more effective
+
+WHAT NOT TO DO:
+- NEVER ask clarifying questions
+- NEVER say "please provide more details"
+- NEVER ask what the user wants
+- NEVER output anything except the enhanced prompt itself
+
+PROMPT TYPE ADAPTATIONS:
+- Image/Design: Add style, mood, lighting, composition, artistic approach
+- Coding: Add language, best practices, error handling, comments
+- Writing: Add tone, audience, structure, length guidance
+- Analysis: Add scope, criteria, format for findings
+- Creative: Add vivid details while preserving creative freedom
+
+EXAMPLE:
+Original: "write a poem about love"
+Enhanced: "Write a heartfelt poem about love, exploring themes of connection and vulnerability. Use vivid imagery and metaphors. The poem should be 12-16 lines with a gentle, reflective tone. Include at least one unexpected comparison that illuminates love in a new way."
+
+OUTPUT RULE:
+Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the improved prompt text ready to paste and use.`;
+      
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: text }
+          ],
+          temperature: 0.5,
+          max_tokens: 1500
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const enhancedText = data.choices[0]?.message?.content || text;
+      
+      // Insert enhanced text back into textarea
+      if (textarea.tagName === 'TEXTAREA') {
+        textarea.value = enhancedText;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if (textarea.isContentEditable) {
+        textarea.textContent = enhancedText;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      
+      toggle.classList.remove('toggle-feedback');
+      toggle.title = 'Enhanced! ✓';
+      setTimeout(() => {
+        toggle.title = 'Enhance prompt with AI';
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Kayko: Enhancement error', error);
+      toggle.classList.remove('toggle-feedback');
+      toggle.title = 'Enhancement failed';
+      setTimeout(() => {
+        toggle.title = 'Enhance prompt with AI';
+      }, 2000);
     }
   }
 
@@ -352,53 +493,13 @@
     icon.style.zIndex = '10000';
   }
 
-  // Update icon state
+  // Update icon state - now uses CSS classes for SVG cat face animations
   function setIconState(icon, state) {
     try {
       icon.classList.remove('idle', 'saving', 'saved');
       icon.classList.add(state);
-      
-      // Change icon image based on state - using custom icons
-      let iconPath = '';
-      if (state === 'idle') {
-        // Idle state - custom idle icon
-        iconPath = 'icons/idle-icon.png';
-      } else if (state === 'saving') {
-        // Saving state - use moving icon with running animation
-        iconPath = 'icons/saving-icon.png';
-      } else if (state === 'saved') {
-        // Saved state - back to idle icon but with green tint via CSS
-        iconPath = 'icons/idle-icon.png';
-      }
-      
-      // Safely set the icon source
-      if (iconPath) {
-        const iconUrl = getExtensionURL(iconPath);
-        if (!iconUrl) {
-          // Extension context invalidated - skip icon change but keep CSS state
-          // Don't log warning here as getExtensionURL already logged it once
-          return;
-        }
-        
-        // Remove ALL existing images first to prevent duplicates (apply to all platforms)
-        const existingImgs = icon.querySelectorAll('.kayko-icon-img');
-        existingImgs.forEach(existingImg => {
-          try {
-            existingImg.remove();
-          } catch (e) {
-            // Silently ignore removal errors
-          }
-        });
-        
-        // Create new image element
-        const img = document.createElement('img');
-        img.alt = 'Kayko';
-        img.className = 'kayko-icon-img';
-        img.src = iconUrl + (state === 'saving' ? '?t=' + Date.now() : '');
-        icon.appendChild(img);
-        
-        console.log('Kayko: Icon state changed to', state, 'using', iconPath);
-      }
+      // CSS handles all animations for the cat face SVG
+      console.log('Kayko: Icon state changed to', state);
     } catch (error) {
       console.error('Kayko: Error setting icon state', error);
     }
@@ -714,21 +815,6 @@
         try {
           // Always reposition when detected again (handles position changes)
           positionIcon(textarea, existing.icon);
-          // Ensure only one image exists in the icon (apply to all platforms)
-          const innerIcon = getInnerIcon(existing.icon);
-          if (innerIcon) {
-            const imgs = innerIcon.querySelectorAll('.kayko-icon-img');
-            if (imgs.length > 1) {
-              // Keep only the first one, remove the rest
-              for (let i = 1; i < imgs.length; i++) {
-                try {
-                  imgs[i].remove();
-                } catch (e) {
-                  // Silently ignore
-                }
-              }
-            }
-          }
         } catch (error) {
           // Silently fail
         }
