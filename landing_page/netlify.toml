@@ -51,7 +51,7 @@
 
 # Custom domain
 [context.production.environment]
-  DOMAIN = "kayko.site"
+  DOMAIN = "kayko.live"
 
 [context.deploy-preview.environment]
   DOMAIN = "kayko-site.netlify.app"

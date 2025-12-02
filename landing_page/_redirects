@@ -1,11 +1,11 @@
 # Netlify Redirects File
 
 # Redirect www to non-www
-https://www.kayko.site/* https://kayko.site/:splat 301!
+https://www.kayko.live/* https://kayko.live/:splat 301!
 
 # Redirect HTTP to HTTPS
-http://kayko.site/* https://kayko.site/:splat 301!
-http://www.kayko.site/* https://kayko.site/:splat 301!
+http://kayko.live/* https://kayko.live/:splat 301!
+http://www.kayko.live/* https://kayko.live/:splat 301!
 
 # SPA fallback - serve index.html for all routes
 /*    /index.html   200

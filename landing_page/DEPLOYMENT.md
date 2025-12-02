@@ -1,11 +1,11 @@
 # Kayko Landing Page - Deployment Guide
 
-This guide will walk you through deploying the Kayko landing page to kayko.site using Netlify.
+This guide will walk you through deploying the Kayko landing page to kayko.live using Netlify.
 
 ## Prerequisites
 
 - A Netlify account (free tier works perfectly)
-- Domain name: kayko.site (already owned)
+- Domain name: kayko.live (already owned)
 - Access to your domain registrar's DNS settings
 
 ## Step 1: Create Netlify Account
@@ -35,11 +35,11 @@ This guide will walk you through deploying the Kayko landing page to kayko.site 
    - **Publish directory**: `landing_page`
 5. Click "Deploy site"
 
-## Step 3: Connect Custom Domain (kayko.site)
+## Step 3: Connect Custom Domain (kayko.live)
 
 1. In your Netlify site dashboard, go to **Site settings** → **Domain management**
 2. Click **Add custom domain**
-3. Enter `kayko.site` and click **Verify**
+3. Enter `kayko.live` and click **Verify**
 4. Netlify will show you DNS configuration options
 
 ## Step 4: Configure DNS Records
@@ -61,8 +61,8 @@ You have two options:
    - **A Record**: Point to `75.2.60.5` (Netlify's IP)
    - **CNAME Record**: Point `www` to `kayko-site.netlify.app`
 3. Go to your domain registrar's DNS settings
-4. Add the A record for `kayko.site` → `75.2.60.5`
-5. Add CNAME record for `www.kayko.site` → `kayko-site.netlify.app`
+4. Add the A record for `kayko.live` → `75.2.60.5`
+5. Add CNAME record for `www.kayko.live` → `kayko-site.netlify.app`
 6. Wait 24-48 hours for DNS propagation
 
 ## Step 5: SSL Certificate (Automatic)
@@ -73,7 +73,7 @@ You have two options:
 
 ## Step 6: Verify Deployment
 
-1. Visit `https://kayko.site` in your browser
+1. Visit `https://kayko.live` in your browser
 2. Check that all links work:
    - GitHub link points to correct repo
    - Chrome Web Store link works
@@ -110,9 +110,9 @@ You have two options:
 
 ## Post-Deployment Checklist
 
-- [ ] Site loads at https://kayko.site
+- [ ] Site loads at https://kayko.live
 - [ ] HTTPS certificate is active (green padlock)
-- [ ] www.kayko.site redirects to kayko.site
+- [ ] www.kayko.live redirects to kayko.live
 - [ ] All navigation links work
 - [ ] GitHub link points to correct repository
 - [ ] Chrome Web Store link works
