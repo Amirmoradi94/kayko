@@ -209,7 +209,7 @@
         const result = await chrome.storage.local.get('settings');
         const currentSettings = result.settings || { 
           maxPrompts: 100,
-          autoSaveEnabled: true,
+          autoSaveEnabled: false,
           openaiApiKey: ''
         };
         
@@ -283,7 +283,7 @@
   async function updateRingState(ring, toggleSwitch, animate = false) {
     try {
       const result = await chrome.storage.local.get('settings');
-      const settings = result.settings || { autoSaveEnabled: true };
+      const settings = result.settings || { autoSaveEnabled: false };
       const autoSaveEnabled = settings.autoSaveEnabled !== false;
       
       // Update ring appearance (colored when on, grey when off)
@@ -405,7 +405,8 @@
   }
 
   // Save prompt to storage
-  async function savePrompt(textarea, text) {
+  // forceSave: true = always save (used for Enter key), false = check for duplicates/substrings
+  async function savePrompt(textarea, text, forceSave = false) {
     if (!text || text.trim().length < 3) return; // Don't save very short text
 
     const prompt = {
@@ -486,6 +487,20 @@
             continue;
           }
           
+          // Check if the existing prompt contains the new text (user deleted some characters)
+          // In this case, UPDATE the existing prompt with the shorter text
+          if (existingPrompt.text.includes(text)) {
+            // The new text is a substring of an existing prompt - update it
+            existingPrompt.text = text;
+            existingPrompt.timestamp = prompt.timestamp;
+            existingPrompt.url = prompt.url;
+            // Move updated prompt to the beginning (most recent)
+            prompts.splice(i, 1);
+            prompts.unshift(existingPrompt);
+            foundExistingPrompt = true;
+            break;
+          }
+          
           // Calculate coverage percentage
           const coverage = calculateCoverage(text, existingPrompt.text);
           
@@ -561,13 +576,13 @@
   async function isAutoSaveEnabled() {
     try {
       if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
-        return true; // Default to enabled if can't check
+        return false; // Default to disabled if can't check
       }
       const result = await chrome.storage.local.get('settings');
-      const settings = result.settings || { autoSaveEnabled: true };
+      const settings = result.settings || { autoSaveEnabled: false };
       return settings.autoSaveEnabled !== false;
     } catch (error) {
-      return true; // Default to enabled on error
+      return false; // Default to disabled on error
     }
   }
 
@@ -758,6 +773,55 @@
       textarea.addEventListener('input', inputHandler, { passive: true });
       textarea.addEventListener('keyup', inputHandler, { passive: true });
       textarea.addEventListener('paste', inputHandler, { passive: true });
+
+      // Add Enter key listener to save prompt when Enter is pressed
+      const enterKeyHandler = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          try {
+            // Capture text immediately before it might be cleared
+            const text = getTextContent(textarea);
+            if (text && text.trim().length >= 3) {
+              // Save the prompt asynchronously (don't block Enter key)
+              const innerIcon = getInnerIcon(icon);
+              if (innerIcon) {
+                setIconState(innerIcon, 'saving');
+                innerIcon.title = 'Saving...';
+              }
+              
+              // Save without awaiting to not block the Enter key submission
+              // forceSave = true to bypass substring check (user pressed Enter = final intent)
+              savePrompt(textarea, text, true).then(success => {
+                if (innerIcon) {
+                  if (success) {
+                    setIconState(innerIcon, 'saved');
+                    innerIcon.title = 'Saved!';
+                    setTimeout(async () => {
+                      setIconState(innerIcon, 'idle');
+                      const autoSaveEnabled = await isAutoSaveEnabled();
+                      innerIcon.title = autoSaveEnabled 
+                        ? 'Kayko - Click to view saved prompts' 
+                        : 'Kayko - Click to manually save prompt';
+                    }, 2000);
+                  } else {
+                    setIconState(innerIcon, 'idle');
+                    isAutoSaveEnabled().then(autoSaveEnabled => {
+                      innerIcon.title = autoSaveEnabled 
+                        ? 'Kayko - Click to view saved prompts' 
+                        : 'Kayko - Click to manually save prompt';
+                    });
+                  }
+                }
+              }).catch(error => {
+                console.error('Kayko: Error saving prompt on Enter', error);
+              });
+            }
+          } catch (error) {
+            console.error('Kayko: Error in Enter key handler', error);
+          }
+        }
+      };
+      
+      textarea.addEventListener('keydown', enterKeyHandler);
 
       // Get inner icon for title and event listeners
       const innerIcon = getInnerIcon(icon);

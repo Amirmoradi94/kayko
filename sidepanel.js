@@ -63,7 +63,7 @@ async function loadData() {
   allPrompts = result.prompts || [];
   settings = result.settings || { 
     maxPrompts: 100, 
-    autoSaveEnabled: true,
+    autoSaveEnabled: false,
     openaiApiKey: ''
   };
   filteredPrompts = [...allPrompts];
@@ -822,7 +822,7 @@ async function openSettings() {
   
   // Populate current settings
   document.getElementById('maxPromptsInput').value = settings.maxPrompts;
-  document.getElementById('autoSaveToggle').checked = settings.autoSaveEnabled !== false;
+  document.getElementById('autoSaveToggle').checked = settings.autoSaveEnabled === true;
   document.getElementById('openaiApiKeyInput').value = settings.openaiApiKey || '';
   
   // Set version from manifest
@@ -884,7 +884,7 @@ function handleStorageChange(changes, namespace) {
       const modal = document.getElementById('settingsModal');
       if (modal && !modal.classList.contains('hidden')) {
         document.getElementById('maxPromptsInput').value = settings.maxPrompts || 100;
-        document.getElementById('autoSaveToggle').checked = settings.autoSaveEnabled !== false;
+        document.getElementById('autoSaveToggle').checked = settings.autoSaveEnabled === true;
         document.getElementById('openaiApiKeyInput').value = settings.openaiApiKey || '';
       }
     }
