@@ -1,0 +1,28 @@
+{
+  "name": "Kayko - Never Lose Your AI Prompts Again",
+  "short_name": "Kayko",
+  "description": "Automatically save every prompt you write across ChatGPT, Claude, Gemini & more. 100% private, works offline.",
+  "icons": [
+    {
+      "src": "icon128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "icon128.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon128.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#FFB84D",
+  "background_color": "#0a0a0f",
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/"
+}
+
