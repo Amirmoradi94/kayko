@@ -54,8 +54,14 @@
       </div>
     </header>
 
+    <!-- Tabs for switching between Prompts and Forms -->
+    <div class="tabs-container">
+      <button class="tab-btn active" data-tab="prompts">Prompts</button>
+      <button class="tab-btn" data-tab="forms">Forms</button>
+    </div>
+
     <!-- Prompts List -->
-    <main class="prompts-list" id="promptsList">
+    <main class="prompts-list tab-content active" id="promptsList" data-tab="prompts">
       <div class="empty-state" id="emptyState">
         <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M32 56C45.2548 56 56 45.2548 56 32C56 18.7452 45.2548 8 32 8C18.7452 8 8 18.7452 8 32C8 45.2548 18.7452 56 32 56Z" stroke="#9CA3AF" stroke-width="3"/>
@@ -63,6 +69,18 @@
         </svg>
         <h2>No saved prompts yet</h2>
         <p>Start typing in any LLM chat and your prompts will be automatically saved here.</p>
+      </div>
+    </main>
+
+    <!-- Forms List -->
+    <main class="forms-list tab-content" id="formsList" data-tab="forms">
+      <div class="empty-state" id="formsEmptyState">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 8h32a4 4 0 014 4v40a4 4 0 01-4 4H16a4 4 0 01-4-4V12a4 4 0 014-4z" stroke="#9CA3AF" stroke-width="3" fill="none"/>
+          <path d="M20 20h24M20 28h24M20 36h16" stroke="#9CA3AF" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <h2>No saved forms yet</h2>
+        <p>Fill out forms on any website and they will be automatically saved here.</p>
       </div>
     </main>
 
@@ -98,10 +116,19 @@
         <div class="setting-item">
           <label>
             <input type="checkbox" id="autoSaveToggle" checked>
-            Enable auto-save
+            Enable auto-save (LLM prompts)
           </label>
           <small style="color: var(--text-secondary); font-size: 12px; margin-top: 4px; display: block; margin-left: 24px;">
             When disabled, click the Kayko icon to manually save prompts. Right-click the icon to view saved prompts.
+          </small>
+        </div>
+        <div class="setting-item">
+          <label>
+            <input type="checkbox" id="formAutoSaveToggle" checked>
+            Enable form auto-save
+          </label>
+          <small style="color: var(--text-secondary); font-size: 12px; margin-top: 4px; display: block; margin-left: 24px;">
+            Automatically save form data on all websites to prevent data loss. Saved data can be restored using the "Restore Form" button that appears near forms.
           </small>
         </div>
         <div class="setting-item">

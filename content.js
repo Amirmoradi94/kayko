@@ -2,9 +2,16 @@
 (function() {
   'use strict';
 
+  // Prevent duplicate initialization
+  if (window.kaykoInitialized) {
+    console.warn('Kayko: Content script already initialized, skipping');
+    return;
+  }
+  window.kaykoInitialized = true;
+
   // Version check - helps identify if old cached code is running
   const KAYKO_VERSION = '1.0.1';
-  //console.log('Kayko: Content script v' + KAYKO_VERSION + ' loaded');
+  console.log('Kayko: Content script v' + KAYKO_VERSION + ' loaded on', window.location.hostname);
 
   const DEBOUNCE_DELAY = 1000; // 1 second
   const ICON_SIZE = 24;
@@ -157,13 +164,16 @@
   }
 
   // Create and inject the Kayko icon - Cat with Ear Toggles Design
-  function createIcon(textarea) {
+  // context: 'prompt' for LLM textareas, 'form' for regular forms
+  function createIcon(textarea, context = 'prompt') {
     // Create wrapper container
     const iconWrapper = document.createElement('div');
     iconWrapper.className = 'kayko-icon-wrapper';
-    
+    iconWrapper.setAttribute('data-context', context);
+
     const icon = document.createElement('div');
     icon.className = 'kayko-icon idle';
+    icon.setAttribute('data-context', context);
     
     // Create cat face SVG inline for better control
     const catSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -213,20 +223,29 @@
     // Create ear toggles container
     const earToggles = document.createElement('div');
     earToggles.className = 'kayko-ear-toggles';
-    
-    // Left ear toggle - Auto-save on/off
+    earToggles.setAttribute('data-context', context);
+
+    // Left ear toggle - Auto-save on/off (works for both prompts and forms)
     const leftToggle = document.createElement('button');
     leftToggle.className = 'kayko-toggle-left toggle-off';
     leftToggle.type = 'button';
     leftToggle.setAttribute('aria-label', 'Toggle auto-save');
-    leftToggle.title = 'Auto-save: OFF';
-    
-    // Right ear toggle - Enhance prompt
+    leftToggle.title = context === 'form' ? 'Form auto-save: OFF' : 'Auto-save: OFF';
+    leftToggle.setAttribute('data-context', context);
+
+    // Right ear toggle - Context-aware (Enhance for prompts, Restore for forms)
     const rightToggle = document.createElement('button');
     rightToggle.className = 'kayko-toggle-right';
     rightToggle.type = 'button';
-    rightToggle.setAttribute('aria-label', 'Enhance prompt');
-    rightToggle.title = 'Enhance prompt with AI';
+    const rightLabel = context === 'form' ? 'Restore form data' : 'Enhance prompt with AI';
+    rightToggle.setAttribute('aria-label', rightLabel);
+    rightToggle.title = rightLabel;
+    rightToggle.setAttribute('data-context', context);
+
+    // Add different icon/styling for form context
+    if (context === 'form') {
+      rightToggle.classList.add('toggle-restore');
+    }
     
     earToggles.appendChild(leftToggle);
     earToggles.appendChild(rightToggle);
@@ -236,89 +255,125 @@
     iconWrapper.appendChild(earToggles);
     
     // Update left toggle state based on current auto-save setting
-    updateToggleState(leftToggle);
+    updateToggleState(leftToggle, false, context);
     
-    // Left toggle click handler - Toggle auto-save
+    // Left toggle click handler - Toggle auto-save (context-aware)
     leftToggle.addEventListener('click', async (e) => {
       e.stopPropagation();
       e.preventDefault();
-      
+
       try {
         const result = await chrome.storage.local.get('settings');
-        const currentSettings = result.settings || { 
+        const currentSettings = result.settings || {
           maxPrompts: 100,
           autoSaveEnabled: false,
+          formAutoSaveEnabled: true,
           openaiApiKey: ''
         };
-        
+
+        const isFormContext = context === 'form';
+        const settingKey = isFormContext ? 'formAutoSaveEnabled' : 'autoSaveEnabled';
+        const currentValue = currentSettings[settingKey];
+
         const updatedSettings = {
           ...currentSettings,
-          autoSaveEnabled: !currentSettings.autoSaveEnabled
+          [settingKey]: !currentValue
         };
-        
+
         await chrome.storage.local.set({ settings: updatedSettings });
-        
+
         // Update toggle state with animation
-        updateToggleState(leftToggle, true);
-        
+        updateToggleState(leftToggle, true, context);
+
         // Update icon title
-        icon.title = updatedSettings.autoSaveEnabled 
-          ? 'Kayko - Auto-save ON' 
-          : 'Kayko - Auto-save OFF';
-          
+        const newState = !currentValue ? 'ON' : 'OFF';
+        const label = isFormContext ? 'Form auto-save' : 'Auto-save';
+        icon.title = `Kayko - ${label} ${newState}`;
+
       } catch (error) {
         //console.error('Kayko: Error toggling auto-save', error);
       }
     });
     
-    // Right toggle click handler - Enhance prompt
+    // Right toggle click handler - Context-aware (Enhance for prompts, Restore for forms)
     rightToggle.addEventListener('click', async (e) => {
       e.stopPropagation();
       e.preventDefault();
-      
+
       try {
-        const text = getTextContent(textarea);
-        if (!text || text.trim().length < 3) {
-          rightToggle.title = 'Type at least 3 characters first';
-          setTimeout(() => {
-            rightToggle.title = 'Enhance prompt with AI';
-          }, 2000);
-          return;
-        }
-        
-        // Check for OpenAI API key
-        const result = await chrome.storage.local.get('settings');
-        const settings = result.settings || {};
-        
-        if (!settings.openaiApiKey) {
-          rightToggle.title = 'Set OpenAI API key in settings first';
-          // Open side panel to settings
-          try {
-            chrome.runtime.sendMessage({ action: 'openSidePanel' });
+        if (context === 'form') {
+          // Form context: Restore form data
+          // Find the parent form - textarea here is actually the form element
+          const form = (textarea && textarea.tagName === 'FORM') ? textarea : textarea.closest('form');
+
+          if (!form) {
+            rightToggle.title = 'No form found';
             setTimeout(() => {
-              chrome.runtime.sendMessage({ action: 'openSettings' });
-            }, 500);
-          } catch (error) {
-            //console.error('Kayko: Error opening settings', error);
+              rightToggle.title = 'Restore form data';
+            }, 2000);
+            return;
           }
-          setTimeout(() => {
-            rightToggle.title = 'Enhance prompt with AI';
-          }, 3000);
-          return;
+
+          const success = await restoreFormData(form);
+          if (success) {
+            rightToggle.classList.add('toggle-feedback');
+            rightToggle.title = 'Restored!';
+            setTimeout(() => {
+              rightToggle.classList.remove('toggle-feedback');
+              rightToggle.title = 'Restore form data';
+            }, 2000);
+          } else {
+            rightToggle.title = 'No saved data to restore';
+            setTimeout(() => {
+              rightToggle.title = 'Restore form data';
+            }, 2000);
+          }
+        } else {
+          // Prompt context: Enhance prompt
+          const text = getTextContent(textarea);
+          if (!text || text.trim().length < 3) {
+            rightToggle.title = 'Type at least 3 characters first';
+            setTimeout(() => {
+              rightToggle.title = 'Enhance prompt with AI';
+            }, 2000);
+            return;
+          }
+
+          // Check for OpenAI API key
+          const result = await chrome.storage.local.get('settings');
+          const settings = result.settings || {};
+
+          if (!settings.openaiApiKey) {
+            rightToggle.title = 'Set OpenAI API key in settings first';
+            // Open side panel to settings
+            try {
+              chrome.runtime.sendMessage({ action: 'openSidePanel' });
+              setTimeout(() => {
+                chrome.runtime.sendMessage({ action: 'openSettings' });
+              }, 500);
+            } catch (error) {
+              //console.error('Kayko: Error opening settings', error);
+            }
+            setTimeout(() => {
+              rightToggle.title = 'Enhance prompt with AI';
+            }, 3000);
+            return;
+          }
+
+          // Show enhancing state
+          rightToggle.classList.add('toggle-feedback');
+          rightToggle.title = 'Enhancing...';
+
+          // Call enhance function (reuse existing logic)
+          await enhancePromptInline(textarea, text, settings.openaiApiKey, rightToggle);
         }
-        
-        // Show enhancing state
-        rightToggle.classList.add('toggle-feedback');
-        rightToggle.title = 'Enhancing...';
-        
-        // Call enhance function (reuse existing logic)
-        await enhancePromptInline(textarea, text, settings.openaiApiKey, rightToggle);
-        
+
       } catch (error) {
-        //console.error('Kayko: Error enhancing prompt', error);
-        rightToggle.title = 'Enhancement failed';
+        //console.error('Kayko: Error in right toggle', error);
+        rightToggle.title = context === 'form' ? 'Restore failed' : 'Enhancement failed';
         setTimeout(() => {
-          rightToggle.title = 'Enhance prompt with AI';
+          const label = context === 'form' ? 'Restore form data' : 'Enhance prompt with AI';
+          rightToggle.title = label;
         }, 2000);
       }
     });
@@ -348,17 +403,22 @@
     return iconWrapper;
   }
   
-  // Update toggle state based on auto-save setting
-  async function updateToggleState(toggle, animate = false) {
+  // Update toggle state based on auto-save setting (context-aware)
+  async function updateToggleState(toggle, animate = false, context = 'prompt') {
     try {
       const result = await chrome.storage.local.get('settings');
-      const settings = result.settings || { autoSaveEnabled: false };
-      const autoSaveEnabled = settings.autoSaveEnabled === true;
-      
-      toggle.classList.toggle('toggle-on', autoSaveEnabled);
-      toggle.classList.toggle('toggle-off', !autoSaveEnabled);
-      toggle.title = autoSaveEnabled ? 'Auto-save: ON' : 'Auto-save: OFF';
-      
+      const settings = result.settings || { autoSaveEnabled: false, formAutoSaveEnabled: true };
+
+      const isFormContext = context === 'form';
+      const settingKey = isFormContext ? 'formAutoSaveEnabled' : 'autoSaveEnabled';
+      const isEnabled = settings[settingKey] === true;
+
+      toggle.classList.toggle('toggle-on', isEnabled);
+      toggle.classList.toggle('toggle-off', !isEnabled);
+
+      const label = isFormContext ? 'Form auto-save' : 'Auto-save';
+      toggle.title = isEnabled ? `${label}: ON` : `${label}: OFF`;
+
       if (animate) {
         toggle.classList.add('toggle-feedback');
         setTimeout(() => {
@@ -452,12 +512,13 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
   }
 
   // Position the icon relative to textarea (attached to top-right border, outside)
-  function positionIcon(textarea, icon) {
+  function positionIcon(textarea, iconWrapper) {
     const rect = textarea.getBoundingClientRect();
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
     
-    icon.style.position = 'absolute';
+    // iconWrapper is the wrapper div returned by createIcon
+    iconWrapper.style.position = 'absolute';
     
     // For ChatGPT, position on the right side (outside the textarea)
     const isChatGPT = window.location.hostname.includes('chatgpt.com') || window.location.hostname.includes('openai.com');
@@ -470,27 +531,28 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
     
     if (isChatGPT) {
       // Position on the right side, vertically centered
-      icon.style.top = `${rect.top + scrollTop + (rect.height / 2) - 85}px`; // Vertically centered (half of 56px)
-      icon.style.left = `${rect.right + scrollLeft + 15}px`; // 25px to the right of textarea
+      iconWrapper.style.top = `${rect.top + scrollTop + (rect.height / 2) - 32}px`; // Vertically centered (half of 64px wrapper)
+      iconWrapper.style.left = `${rect.right + scrollLeft + 15}px`; // 15px to the right of textarea
     } else if (isPerplexity) {
       // For Perplexity, position relative to top border of textarea
-      icon.style.top = `${rect.top + scrollTop - 60}px`; // Relative to top border
-      icon.style.left = `${rect.right + scrollLeft - 50}px`; // 50px from right edge
+      iconWrapper.style.top = `${rect.top + scrollTop - 60}px`; // Relative to top border
+      iconWrapper.style.left = `${rect.right + scrollLeft - 50}px`; // 50px from right edge
     } else if (isClaude) {
       // For Claude, position higher than default
-      icon.style.top = `${rect.top + scrollTop - 63}px`; // 40px above (higher than default 28px)
-      icon.style.left = `${rect.right + scrollLeft - 50}px`; // 28px from right edge (half icon width)
+      iconWrapper.style.top = `${rect.top + scrollTop - 63}px`; // Above textarea
+      iconWrapper.style.left = `${rect.right + scrollLeft - 50}px`; // From right edge
     } else if (isAIStudio || isGemini) {
       // For Google AI Studio and Gemini, position higher than default
-      icon.style.top = `${rect.top + scrollTop - 66}px`; // 40px above (higher than default 28px)
-      icon.style.left = `${rect.right + scrollLeft - 50}px`; // 28px from right edge (half icon width)
+      iconWrapper.style.top = `${rect.top + scrollTop - 66}px`; // Above textarea
+      iconWrapper.style.left = `${rect.right + scrollLeft - 50}px`; // From right edge
     } else {
       // For other platforms, keep top-right position
-      icon.style.top = `${rect.top + scrollTop - 28}px`; // 28px above (half the icon height)
-      icon.style.left = `${rect.right + scrollLeft - 28}px`; // 28px from right edge (half icon width)
+      iconWrapper.style.top = `${rect.top + scrollTop - 28}px`; // 28px above (half the icon height)
+      iconWrapper.style.left = `${rect.right + scrollLeft - 28}px`; // 28px from right edge (half icon width)
     }
     
-    icon.style.zIndex = '10000';
+    iconWrapper.style.zIndex = '10000';
+    console.log('Kayko: Icon positioned at', iconWrapper.style.top, iconWrapper.style.left);
   }
 
   // Update icon state - now uses CSS classes for SVG cat face animations
@@ -835,10 +897,12 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       
       // Create and inject icon
       const icon = createIcon(textarea);
+      console.log('Kayko: Created icon for textarea');
       
       // Safely append to body
       if (document.body) {
         document.body.appendChild(icon);
+        console.log('Kayko: Icon appended to body');
       } else {
         console.warn('Kayko: document.body not available');
         return;
@@ -846,6 +910,7 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       
       // Position icon
       positionIcon(textarea, icon);
+      console.log('Kayko: Icon positioned');
 
       // Store reference
       trackedTextareas.set(textarea, { icon, textarea });
@@ -1121,6 +1186,7 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
     // Note: [contenteditable] matches all elements with the attribute (regardless of value)
     // We'll filter out contenteditable="false" elements below
     const textareas = document.querySelectorAll('textarea, [contenteditable]');
+    console.log('Kayko: Found', textareas.length, 'potential textarea/contenteditable elements');
     
     textareas.forEach(textarea => {
       // Skip if already tracked
@@ -1146,17 +1212,28 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       const className = textarea.className || '';
       const id = textarea.id || '';
       const placeholder = textarea.placeholder || textarea.getAttribute('placeholder') || '';
+      const ariaLabel = textarea.getAttribute('aria-label') || textarea.getAttribute('aria-labelledby') || '';
       const isKnownChatUI = className.includes('ProseMirror') || 
                            className.includes('tiptap') ||
                            className.includes('contenteditable') ||
                            className.includes('prompt') ||
                            className.includes('input') ||
                            className.includes('chat') ||
+                           className.includes('textarea') ||
+                           className.includes('message') ||
+                           className.includes('query') ||
                            id.includes('prompt') ||
                            id.includes('input') ||
                            id.includes('chat') ||
+                           id.includes('message') ||
+                           id.includes('query') ||
                            placeholder.toLowerCase().includes('prompt') ||
-                           placeholder.toLowerCase().includes('message');
+                           placeholder.toLowerCase().includes('message') ||
+                           placeholder.toLowerCase().includes('ask') ||
+                           placeholder.toLowerCase().includes('type') ||
+                           ariaLabel.toLowerCase().includes('prompt') ||
+                           ariaLabel.toLowerCase().includes('message') ||
+                           ariaLabel.toLowerCase().includes('ask');
       
       // Google AI Studio specific detection - check for Google AI Studio patterns
       const isAIStudio = window.location.hostname.includes('aistudio.google.com');
@@ -1175,27 +1252,37 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       // - Has a reasonable width (not a tiny input)
       // - OR is a known chat UI framework
       const minHeight = isContentEditable ? 20 : 30;
-      const meetsSize = isVisible && rect.width > 100 && (rect.height > minHeight || hasRows || isKnownChatUI);
+      const minWidth = isKnownChatUI ? 50 : 100; // Be more lenient for known chat UIs
+      const meetsSize = isVisible && rect.width > minWidth && (rect.height > minHeight || hasRows || isKnownChatUI);
       
       // Google AI Studio specific: be more lenient with size requirements if it matches Google AI Studio patterns
       const meetsAIStudioSize = isAIStudioInput && isVisible && rect.width > 50 && rect.height > 15;
       
-      if (meetsSize || meetsAIStudioSize) {
-        //console.log('Kayko: Detected textarea', {
-          //element: textarea,
-          //rect: rect,
-          //tagName: textarea.tagName,
-          //className: className,
-          //id: id,
-          //contentEditable: isContentEditable,
-          //contentEditableAttr: textarea.getAttribute('contenteditable'),
-          //isKnownChatUI: isKnownChatUI
-        //});
+      // Perplexity and other LLM sites: be more lenient for contenteditable elements
+      const isPerplexity = window.location.hostname.includes('perplexity.ai');
+      const meetsLLMContentEditable = isPerplexity && isContentEditable && isVisible && rect.width > 50 && rect.height > 15;
+      
+      if (meetsSize || meetsAIStudioSize || meetsLLMContentEditable) {
+        console.log('Kayko: Detected valid textarea', {
+          tagName: textarea.tagName,
+          className: className,
+          id: id,
+          contentEditable: isContentEditable,
+          rect: { width: rect.width, height: rect.height },
+          isKnownChatUI: isKnownChatUI
+        });
         try {
           trackTextarea(textarea);
         } catch (error) {
           console.error('Kayko: Error tracking textarea', error);
         }
+      } else {
+        console.log('Kayko: Skipped textarea (doesn\'t meet size requirements)', {
+          tagName: textarea.tagName,
+          width: rect.width,
+          height: rect.height,
+          minHeight: minHeight
+        });
       }
     });
   }
@@ -1203,18 +1290,23 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
   // Initialize
   function init() {
     try {
-      // Only run on LLM websites
-      if (!isLLMWebsite()) {
-        //console.log('Kayko: Not an LLM website, skipping initialization');
+      const hostname = window.location.hostname;
+      const isLLM = isLLMWebsite();
+      
+      console.log('Kayko: Content script initialized on', hostname);
+      console.log('Kayko: Is LLM website?', isLLM);
+      
+      // Only run textarea detection on LLM websites
+      if (!isLLM) {
+        console.log('Kayko: Not an LLM website, skipping textarea detection (form detection will still run)');
         return;
       }
-      
-      //console.log('Kayko: Content script initialized on', window.location.hostname);
       
       // Clean up any existing icons first (in case of page reactivation)
       cleanupIcons();
       
       // Initial detection
+      console.log('Kayko: Starting textarea detection...');
       detectTextareas();
 
       // Delayed detection for dynamically loaded content
@@ -1296,6 +1388,9 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
     }
   }
 
+  // Call init to start textarea detection
+  init();
+
   // Expose manual trigger for debugging
   window.kaykoDetect = function() {
     //console.log('Kayko: Manual detection triggered');
@@ -1303,11 +1398,1043 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
     //console.log('Kayko: Currently tracking', trackedIcons.size, 'icons');
   };
 
-  // Start when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
+  // ============================================
+  // FORM AUTO-SAVE FUNCTIONALITY
+  // ============================================
+
+  const FORM_DEBOUNCE_DELAY = 2000; // 2 seconds
+  const trackedForms = new WeakMap();
+  const formSaveTimers = new WeakMap();
+  const formRestoreButtons = new WeakMap();
+
+  // Check if form auto-save is enabled
+  async function isFormAutoSaveEnabled() {
+    try {
+      if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+        return false;
+      }
+      const result = await chrome.storage.local.get('settings');
+      const settings = result.settings || { formAutoSaveEnabled: true };
+      return settings.formAutoSaveEnabled !== false;
+    } catch (error) {
+      return false;
+    }
   }
+
+  // Check if field is sensitive (password, credit card, etc.)
+  function isSensitiveField(field) {
+    const type = field.type?.toLowerCase() || '';
+    const name = field.name?.toLowerCase() || '';
+    const id = field.id?.toLowerCase() || '';
+    const autocomplete = field.getAttribute('autocomplete')?.toLowerCase() || '';
+    
+    // Password fields
+    if (type === 'password') return true;
+    
+    // Credit card fields
+    if (name.includes('card') || name.includes('cvv') || name.includes('cvc') || 
+        id.includes('card') || id.includes('cvv') || id.includes('cvc') ||
+        autocomplete.includes('cc-')) return true;
+    
+    // SSN fields
+    if (name.includes('ssn') || id.includes('ssn') || 
+        name.includes('social') || id.includes('social')) return true;
+    
+    // Hidden fields (usually not user input)
+    if (type === 'hidden') return true;
+    
+    return false;
+  }
+
+  // Get form field value based on field type
+  function getFormFieldValue(field) {
+    const type = field.type?.toLowerCase() || '';
+
+    // Skip file inputs (can't restore for security reasons)
+    if (type === 'file') {
+      return null;
+    }
+
+    if (type === 'checkbox') {
+      return {
+        checked: field.checked,
+        displayValue: field.checked ? '✓ Checked' : '✗ Unchecked'
+      };
+    }
+
+    if (type === 'radio') {
+      // For radio buttons, get the label of the selected option
+      const label = getFieldLabel(field);
+      return {
+        checked: field.checked,
+        value: field.value,
+        displayValue: field.checked ? label : null
+      };
+    }
+
+    if (field.tagName === 'SELECT') {
+      if (field.multiple) {
+        const selected = Array.from(field.selectedOptions);
+        return {
+          values: selected.map(opt => opt.value),
+          displayValue: selected.map(opt => opt.text || opt.value).join(', ')
+        };
+      }
+      const selectedOption = field.options[field.selectedIndex];
+      return {
+        value: field.value,
+        displayValue: selectedOption ? (selectedOption.text || field.value) : field.value
+      };
+    }
+
+    // Date/time formatting
+    if (type === 'date' && field.value) {
+      try {
+        const date = new Date(field.value);
+        return {
+          value: field.value,
+          displayValue: date.toLocaleDateString()
+        };
+      } catch (e) {
+        return { value: field.value, displayValue: field.value };
+      }
+    }
+
+    if (type === 'time' && field.value) {
+      return {
+        value: field.value,
+        displayValue: field.value // Keep time as-is, already readable
+      };
+    }
+
+    if (type === 'datetime-local' && field.value) {
+      try {
+        const date = new Date(field.value);
+        return {
+          value: field.value,
+          displayValue: date.toLocaleString()
+        };
+      } catch (e) {
+        return { value: field.value, displayValue: field.value };
+      }
+    }
+
+    if (type === 'color' && field.value) {
+      return {
+        value: field.value,
+        displayValue: field.value.toUpperCase()
+      };
+    }
+
+    if (type === 'range' && field.value) {
+      const min = field.min || 0;
+      const max = field.max || 100;
+      return {
+        value: field.value,
+        displayValue: `${field.value} (${min}-${max})`
+      };
+    }
+
+    // Default: text, email, url, tel, number, etc.
+    return {
+      value: field.value || '',
+      displayValue: field.value || ''
+    };
+  }
+
+  // Set form field value based on field type
+  function setFormFieldValue(field, storedValue) {
+    const type = field.type?.toLowerCase() || '';
+
+    // Handle new object format or legacy simple values
+    let value = storedValue;
+    if (storedValue && typeof storedValue === 'object') {
+      if (type === 'checkbox' || type === 'radio') {
+        value = storedValue.checked;
+      } else if (field.tagName === 'SELECT' && field.multiple) {
+        value = storedValue.values || storedValue.value;
+      } else {
+        value = storedValue.value;
+      }
+    }
+
+    if (type === 'checkbox' || type === 'radio') {
+      field.checked = Boolean(value);
+    } else if (field.tagName === 'SELECT') {
+      if (field.multiple && Array.isArray(value)) {
+        Array.from(field.options).forEach(opt => {
+          opt.selected = value.includes(opt.value);
+        });
+      } else {
+        field.value = value;
+      }
+    } else {
+      field.value = value || '';
+    }
+
+    // Trigger events for form validation
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // Generate unique identifier for form (stable across page reloads)
+  function getFormIdentifier(form) {
+    // Try form ID first (most stable)
+    if (form.id) {
+      console.log('Kayko: Using form ID as identifier:', form.id);
+      return form.id;
+    }
+
+    // Try form name (stable if defined)
+    if (form.name) {
+      console.log('Kayko: Using form name as identifier:', form.name);
+      return form.name;
+    }
+
+    // Try form action URL (stable if defined)
+    if (form.action) {
+      try {
+        const url = new URL(form.action, window.location.href);
+        console.log('Kayko: Using form action pathname as identifier:', url.pathname);
+        return url.pathname;
+      } catch (e) {
+        // Invalid URL, use as-is
+        console.log('Kayko: Using form action as identifier:', form.action);
+        return form.action;
+      }
+    }
+
+    // If only one form on page, use consistent identifier
+    const forms = Array.from(document.querySelectorAll('form'));
+    if (forms.length === 1) {
+      console.log('Kayko: Single form detected, using "main-form" identifier');
+      return 'main-form';
+    }
+
+    // Fallback: Create stable identifier based on form structure
+    // Use field names/ids to create a signature (stable as long as form structure doesn't change)
+    const fields = form.querySelectorAll('input, textarea, select');
+    const signature = Array.from(fields)
+      .map(f => f.name || f.id || f.type)
+      .filter(Boolean)
+      .slice(0, 5) // Use first 5 fields for signature
+      .join('-');
+
+    if (signature) {
+      const hash = hashString(signature);
+      console.log('Kayko: Using form structure hash as identifier:', `form-${hash}`, '(from signature:', signature + ')');
+      return `form-${hash}`;
+    }
+
+    // Last resort: use form's position/index (least stable, may change if DOM changes)
+    const index = forms.indexOf(form);
+    console.warn('Kayko: Using form index as identifier (unstable):', `form-${index}`);
+    return `form-${index}`;
+  }
+
+  // Simple hash function for strings
+  function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  // Generate storage key for form data
+  function getFormStorageKey(form) {
+    const formId = getFormIdentifier(form);
+    const url = window.location.origin + window.location.pathname;
+    return `${url}#${formId}`;
+  }
+
+  // Get all form fields (excluding sensitive ones)
+  // Get human-readable label for a form field
+  function getFieldLabel(field) {
+    // 1. Try <label for="fieldId">
+    if (field.id) {
+      const labelFor = document.querySelector(`label[for="${field.id}"]`);
+      if (labelFor && labelFor.textContent) {
+        return labelFor.textContent.trim().replace(/[:\*\s]+$/, '');
+      }
+    }
+
+    // 2. Try parent <label> element
+    const parentLabel = field.closest('label');
+    if (parentLabel) {
+      // Get text content but exclude the input's text
+      const clone = parentLabel.cloneNode(true);
+      const inputs = clone.querySelectorAll('input, textarea, select');
+      inputs.forEach(i => i.remove());
+      const text = clone.textContent.trim().replace(/[:\*\s]+$/, '');
+      if (text) return text;
+    }
+
+    // 3. Try aria-label
+    if (field.getAttribute('aria-label')) {
+      return field.getAttribute('aria-label').trim();
+    }
+
+    // 4. Try aria-labelledby
+    const labelledBy = field.getAttribute('aria-labelledby');
+    if (labelledBy) {
+      const labelEl = document.getElementById(labelledBy);
+      if (labelEl && labelEl.textContent) {
+        return labelEl.textContent.trim().replace(/[:\*\s]+$/, '');
+      }
+    }
+
+    // 5. Try placeholder
+    if (field.placeholder) {
+      return field.placeholder.trim();
+    }
+
+    // 6. Try nearby label in same container (common pattern)
+    const parent = field.parentElement;
+    if (parent) {
+      // Look for label sibling
+      const siblingLabel = parent.querySelector('label');
+      if (siblingLabel && siblingLabel !== parentLabel) {
+        const text = siblingLabel.textContent.trim().replace(/[:\*\s]+$/, '');
+        if (text) return text;
+      }
+
+      // Look for previous sibling text
+      let sibling = field.previousElementSibling;
+      while (sibling) {
+        if (sibling.tagName === 'LABEL' || sibling.classList?.contains('label')) {
+          const text = sibling.textContent.trim().replace(/[:\*\s]+$/, '');
+          if (text) return text;
+        }
+        sibling = sibling.previousElementSibling;
+      }
+    }
+
+    // 7. Try title attribute
+    if (field.title) {
+      return field.title.trim();
+    }
+
+    // 8. Fallback to name or id (cleaned up)
+    const fallback = field.name || field.id || '';
+    // Convert camelCase or snake_case to readable text
+    return fallback
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[_-]/g, ' ')
+      .replace(/^\w/, c => c.toUpperCase())
+      .trim() || 'Field';
+  }
+
+  function getFormFields(form) {
+    const fields = {};
+    const inputs = form.querySelectorAll('input, textarea, select');
+    const radioGroups = new Map(); // Track radio button groups
+
+    inputs.forEach(field => {
+      if (isSensitiveField(field)) {
+        return; // Skip sensitive fields
+      }
+
+      const type = field.type?.toLowerCase() || '';
+
+      // Skip file inputs
+      if (type === 'file') {
+        return;
+      }
+
+      // Handle radio buttons specially - group them by name
+      if (type === 'radio' && field.name) {
+        if (!radioGroups.has(field.name)) {
+          radioGroups.set(field.name, []);
+        }
+        radioGroups.get(field.name).push(field);
+        return; // Process radio groups separately
+      }
+
+      // Prefer ID, fallback to name, then use type + index
+      const key = field.id || field.name || `${field.tagName.toLowerCase()}-${type || 'text'}-${Array.from(form.querySelectorAll(field.tagName)).indexOf(field)}`;
+
+      const fieldValue = getFormFieldValue(field);
+      if (fieldValue === null) {
+        return; // Skip fields that return null (like file inputs)
+      }
+
+      if (key) {
+        fields[key] = {
+          value: fieldValue,
+          type: type || field.tagName.toLowerCase(),
+          id: field.id,
+          name: field.name,
+          label: getFieldLabel(field),
+          selector: getFieldSelector(field)
+        };
+      }
+    });
+
+    // Process radio button groups
+    radioGroups.forEach((radios, groupName) => {
+      const selectedRadio = radios.find(r => r.checked);
+      const firstRadio = radios[0];
+
+      // Get group label (usually from fieldset legend or nearby label)
+      let groupLabel = '';
+      const fieldset = firstRadio.closest('fieldset');
+      if (fieldset) {
+        const legend = fieldset.querySelector('legend');
+        if (legend) {
+          groupLabel = legend.textContent.trim().replace(/[:\*\s]+$/, '');
+        }
+      }
+      if (!groupLabel) {
+        // Try to get label from the group's container
+        const container = firstRadio.closest('[role="radiogroup"], .form-group, .radio-group');
+        if (container) {
+          const label = container.querySelector('label:first-child, .label');
+          if (label && !label.querySelector('input')) {
+            groupLabel = label.textContent.trim().replace(/[:\*\s]+$/, '');
+          }
+        }
+      }
+      if (!groupLabel) {
+        groupLabel = groupName.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]/g, ' ').replace(/^\w/, c => c.toUpperCase());
+      }
+
+      fields[groupName] = {
+        value: {
+          selectedValue: selectedRadio ? selectedRadio.value : null,
+          displayValue: selectedRadio ? getFieldLabel(selectedRadio) : 'None selected'
+        },
+        type: 'radio-group',
+        name: groupName,
+        label: groupLabel,
+        selector: `[name="${groupName}"]`
+      };
+    });
+
+    return fields;
+  }
+
+  // Get CSS selector for field (for restoration)
+  function getFieldSelector(field) {
+    if (field.id) {
+      return `#${field.id}`;
+    }
+    if (field.name) {
+      return `[name="${field.name}"]`;
+    }
+    // Fallback selector
+    const tag = field.tagName.toLowerCase();
+    const type = field.type ? `[type="${field.type}"]` : '';
+    return `${tag}${type}`;
+  }
+
+  // Find field by stored key
+  function findFormField(form, key, fieldData) {
+    // Try ID first
+    if (fieldData.id) {
+      const field = form.querySelector(`#${fieldData.id}`);
+      if (field) return field;
+    }
+    
+    // Try name
+    if (fieldData.name) {
+      const field = form.querySelector(`[name="${fieldData.name}"]`);
+      if (field) return field;
+    }
+    
+    // Try selector
+    if (fieldData.selector) {
+      try {
+        const field = form.querySelector(fieldData.selector);
+        if (field) return field;
+      } catch (e) {
+        // Invalid selector
+      }
+    }
+    
+    // Fallback: try key as ID or name
+    let field = form.querySelector(`#${key}`);
+    if (field) return field;
+    field = form.querySelector(`[name="${key}"]`);
+    if (field) return field;
+    
+    return null;
+  }
+
+  // Save form data to storage
+  async function saveFormData(form) {
+    try {
+      if (!extensionContextValid || typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+        console.warn('Kayko: Extension context invalid, cannot save form data');
+        return false;
+      }
+      
+      const enabled = await isFormAutoSaveEnabled();
+      if (!enabled) {
+        console.log('Kayko: Form auto-save disabled');
+        return false;
+      }
+      
+      const storageKey = getFormStorageKey(form);
+      const fields = getFormFields(form);
+      
+      console.log('Kayko: Saving form data, found', Object.keys(fields).length, 'fields');
+      
+      // Don't save if form is empty
+      const hasData = Object.values(fields).some(f => {
+        const val = f.value;
+        if (val === null || val === undefined) return false;
+        if (typeof val === 'boolean') return val;
+        if (Array.isArray(val)) return val.length > 0;
+        if (typeof val === 'object') {
+          // Handle new object format
+          if (val.checked !== undefined) return val.checked;
+          if (val.selectedValue !== undefined) return val.selectedValue !== null;
+          if (val.values) return val.values.length > 0;
+          if (val.value !== undefined) return val.value && val.value.toString().trim().length > 0;
+          if (val.displayValue) return val.displayValue && val.displayValue.toString().trim().length > 0;
+        }
+        return val && val.toString().trim().length > 0;
+      });
+      
+      if (!hasData) {
+        console.log('Kayko: Form is empty, removing saved data');
+        // Remove saved data if form is empty
+        const result = await chrome.storage.local.get('formData');
+        const formData = result.formData || {};
+        delete formData[storageKey];
+        await chrome.storage.local.set({ formData });
+        updateRestoreButton(form, false);
+        return false;
+      }
+      
+      const formData = {
+        formId: getFormIdentifier(form),
+        url: window.location.href,
+        timestamp: Date.now(),
+        fields: {}
+      };
+      
+      // Store field data including human-readable labels
+      Object.keys(fields).forEach(key => {
+        formData.fields[key] = {
+          value: fields[key].value,
+          type: fields[key].type,
+          id: fields[key].id,
+          name: fields[key].name,
+          label: fields[key].label,
+          selector: fields[key].selector
+        };
+      });
+      
+      const result = await chrome.storage.local.get('formData');
+      const allFormData = result.formData || {};
+      const isUpdate = allFormData.hasOwnProperty(storageKey);
+      allFormData[storageKey] = formData;
+
+      await chrome.storage.local.set({ formData: allFormData });
+
+      console.log(`Kayko: Form data ${isUpdate ? 'updated' : 'created'} successfully (key: ${storageKey})`);
+      
+      // Update restore button visibility
+      updateRestoreButton(form, true);
+      
+      return true;
+    } catch (error) {
+      console.error('Kayko: Error saving form data', error);
+      return false;
+    }
+  }
+
+  // Check if a form field is empty
+  function isFieldEmpty(field) {
+    const type = field.type?.toLowerCase() || '';
+
+    // Checkbox/radio - consider unchecked as empty
+    if (type === 'checkbox' || type === 'radio') {
+      return !field.checked;
+    }
+
+    // Select - check if default option is selected
+    if (field.tagName === 'SELECT') {
+      if (field.multiple) {
+        return field.selectedOptions.length === 0;
+      }
+      // Check if value is empty or is the first/default option
+      return !field.value || field.selectedIndex === 0;
+    }
+
+    // Text-based inputs (text, textarea, email, etc.)
+    const value = field.value || '';
+    return value.trim().length === 0;
+  }
+
+  // Restore form data from storage
+  async function restoreFormData(form) {
+    try {
+      if (!extensionContextValid || typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+        return false;
+      }
+      
+      const storageKey = getFormStorageKey(form);
+      const result = await chrome.storage.local.get('formData');
+      const allFormData = result.formData || {};
+      const savedData = allFormData[storageKey];
+      
+      if (!savedData || !savedData.fields) {
+        return false;
+      }
+      
+      let restoredCount = 0;
+
+      // Restore each field only if it's empty
+      Object.keys(savedData.fields).forEach(key => {
+        const fieldData = savedData.fields[key];
+
+        // Handle radio groups specially
+        if (fieldData.type === 'radio-group') {
+          const radios = form.querySelectorAll(`[name="${key}"]`);
+          const hasSelection = Array.from(radios).some(r => r.checked);
+
+          // Only restore if no radio is selected
+          if (!hasSelection) {
+            const selectedValue = fieldData.value?.selectedValue;
+            if (selectedValue) {
+              radios.forEach(radio => {
+                if (radio.value === selectedValue) {
+                  radio.checked = true;
+                  radio.dispatchEvent(new Event('change', { bubbles: true }));
+                  restoredCount++;
+                }
+              });
+            }
+          }
+          return;
+        }
+
+        const field = findFormField(form, key, fieldData);
+
+        if (field && !isSensitiveField(field)) {
+          try {
+            // Check if field is empty before restoring
+            if (isFieldEmpty(field)) {
+              setFormFieldValue(field, fieldData.value);
+              restoredCount++;
+            }
+          } catch (e) {
+            console.warn('Kayko: Error restoring field', key, e);
+          }
+        }
+      });
+      
+      if (restoredCount > 0) {
+        showRestoreNotification(`Restored ${restoredCount} field${restoredCount > 1 ? 's' : ''}`);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Kayko: Error restoring form data', error);
+      return false;
+    }
+  }
+
+  // Show restore notification
+  function showRestoreNotification(message) {
+    const notification = document.createElement('div');
+    notification.className = 'kayko-form-notification';
+    notification.textContent = message;
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #10B981;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 999999;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      animation: kayko-notification-slide 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.style.animation = 'kayko-notification-slide 0.3s ease reverse';
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
+  }
+
+  // Create restore button for form
+  function createRestoreButton(form) {
+    const button = document.createElement('button');
+    button.className = 'kayko-form-restore-btn';
+    button.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 2L10.163 6.403L15 7.095L11.5 10.507L12.326 15.323L8 13.045L3.674 15.323L4.5 10.507L1 7.095L5.837 6.403L8 2Z" fill="currentColor"/>
+      </svg>
+      <span>Restore Form</span>
+    `;
+    button.title = 'Restore saved form data';
+    
+    button.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const success = await restoreFormData(form);
+      if (success) {
+        button.classList.add('restored');
+        setTimeout(() => {
+          button.classList.remove('restored');
+        }, 2000);
+      }
+    });
+    
+    return button;
+  }
+
+  // Update restore button visibility (now handles icons instead of buttons)
+  async function updateRestoreButton(form, hasData) {
+    // With the new universal icon approach, we don't need to show/hide
+    // The icon is always visible and handles restore functionality
+    // This function is kept for compatibility but doesn't need to do anything
+    let icon = formRestoreButtons.get(form);
+
+    if (icon && icon.classList && icon.classList.contains('kayko-icon-wrapper')) {
+      // Icon already exists, no action needed
+      console.log('Kayko: Form icon already exists and visible');
+    }
+  }
+
+  // Check for saved data and show restore button
+  async function checkForSavedFormData(form) {
+    try {
+      if (!extensionContextValid || typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+        console.warn('Kayko: Cannot check for saved form data - extension context invalid');
+        return;
+      }
+      
+      const storageKey = getFormStorageKey(form);
+      console.log('Kayko: Checking for saved data with key:', storageKey);
+      const result = await chrome.storage.local.get('formData');
+      const allFormData = result.formData || {};
+      const savedData = allFormData[storageKey];
+      
+      if (savedData && savedData.fields && Object.keys(savedData.fields).length > 0) {
+        console.log('Kayko: Found saved data for form, showing restore button');
+        updateRestoreButton(form, true);
+      } else {
+        console.log('Kayko: No saved data found for this form');
+      }
+    } catch (error) {
+      console.error('Kayko: Error checking for saved form data', error);
+    }
+  }
+
+  // Handle form field input with debouncing
+  function handleFormFieldInput(form) {
+    // Clear existing timer
+    if (formSaveTimers.has(form)) {
+      clearTimeout(formSaveTimers.get(form));
+    }
+    
+    // Set new timer
+    const timer = setTimeout(async () => {
+      await saveFormData(form);
+      formSaveTimers.delete(form);
+    }, FORM_DEBOUNCE_DELAY);
+    
+    formSaveTimers.set(form, timer);
+  }
+
+  // Track a form
+  async function trackForm(form) {
+    if (trackedForms.has(form)) {
+      return; // Already tracked
+    }
+
+    try {
+      const enabled = await isFormAutoSaveEnabled();
+      if (!enabled) {
+        console.log('Kayko: Form auto-save disabled, skipping form tracking');
+        return;
+      }
+
+      trackedForms.set(form, true);
+      console.log('Kayko: Form tracked successfully');
+
+      // Create and inject cat icon for form (with 'form' context)
+      const formIcon = createIcon(form, 'form');
+
+      // Append to documentElement (html) to avoid stacking context issues
+      if (document.documentElement) {
+        document.documentElement.appendChild(formIcon);
+        console.log('Kayko: Form icon appended to documentElement');
+      } else if (document.body) {
+        document.body.appendChild(formIcon);
+        console.log('Kayko: Form icon appended to body');
+      } else {
+        console.warn('Kayko: Neither documentElement nor body available for form icon');
+        return;
+      }
+
+      // Position icon at bottom-right corner of viewport (fixed position)
+      const positionFormIcon = () => {
+        formIcon.style.position = 'fixed';
+        formIcon.style.display = 'block';
+        formIcon.style.visibility = 'visible';
+        formIcon.style.opacity = '1';
+        formIcon.style.bottom = '20px';
+        formIcon.style.right = '20px';
+        formIcon.style.top = 'auto';
+        formIcon.style.left = 'auto';
+        formIcon.style.zIndex = '2147483647';
+
+        console.log('Kayko: Form icon positioned at bottom-right corner (fixed)');
+      };
+
+      positionFormIcon();
+
+      // Store icon reference
+      formRestoreButtons.set(form, formIcon);
+      if (trackedIcons && typeof trackedIcons.add === 'function') {
+        trackedIcons.add(formIcon);
+      }
+
+      // Check for existing saved data
+      await checkForSavedFormData(form);
+
+      // Add input listeners to all fields
+      const handleFieldChange = (e) => {
+        handleFormFieldInput(form);
+      };
+
+      form.addEventListener('input', handleFieldChange, { passive: true });
+      form.addEventListener('change', handleFieldChange, { passive: true });
+
+      // Clear saved data on form submit (optional)
+      form.addEventListener('submit', async () => {
+        // Optionally clear saved data after successful submit
+        // Uncomment if desired:
+        // const storageKey = getFormStorageKey(form);
+        // const result = await chrome.storage.local.get('formData');
+        // const formData = result.formData || {};
+        // delete formData[storageKey];
+        // await chrome.storage.local.set({ formData });
+      }, { passive: true });
+
+      // Icon stays at bottom-right corner with fixed positioning, no need to reposition on scroll/resize
+      console.log('Kayko: Form icon will stay at bottom-right corner (fixed positioning)');
+
+    } catch (error) {
+      console.error('Kayko: Error tracking form', error);
+    }
+  }
+
+  // Detect all forms on page
+  function detectForms() {
+    // Skip form detection on LLM websites - they use textarea detection instead
+    if (isLLMWebsite()) {
+      console.log('Kayko: LLM website detected, skipping form detection (using textarea detection instead)');
+      return;
+    }
+    
+    const forms = document.querySelectorAll('form');
+    console.log('Kayko: Detected', forms.length, 'form(s) on page');
+    
+    forms.forEach((form, index) => {
+      // Skip if already tracked
+      if (trackedForms.has(form)) {
+        // Silently skip - form already tracked
+        return;
+      }
+      
+      // Skip if form has no fields
+      const fields = form.querySelectorAll('input, textarea, select');
+      const hasFields = fields.length > 0;
+
+      if (!hasFields) {
+        // Silently skip - form has no fields
+        return;
+      }
+      
+      // Skip if this form contains a tracked textarea (LLM chat area)
+      let containsLLMTextarea = false;
+      const formTextareas = form.querySelectorAll('textarea, [contenteditable]');
+      formTextareas.forEach(textarea => {
+        if (trackedTextareas.has(textarea)) {
+          containsLLMTextarea = true;
+        }
+      });
+      
+      if (containsLLMTextarea) {
+        // Silently skip - form contains LLM textarea
+        return;
+      }
+
+      console.log('Kayko: Tracking form with', fields.length, 'fields');
+      trackForm(form);
+    });
+  }
+
+  // Initialize form detection
+  async function initFormDetection() {
+    const enabled = await isFormAutoSaveEnabled();
+    if (!enabled) {
+      console.log('Kayko: Form auto-save is disabled in settings');
+      return;
+    }
+    
+    console.log('Kayko: Initializing form detection...');
+    
+    // Initial detection
+    detectForms();
+    
+    // Watch for dynamically added forms using MutationObserver with debouncing
+    if (document.body) {
+      let formDetectionTimer = null;
+
+      const observer = new MutationObserver(() => {
+        // Debounce form detection to avoid excessive checks
+        if (formDetectionTimer) {
+          clearTimeout(formDetectionTimer);
+        }
+
+        formDetectionTimer = setTimeout(() => {
+          try {
+            detectForms();
+          } catch (error) {
+            // Silently fail to avoid breaking the page
+          }
+        }, 500); // Wait 500ms after mutations stop before checking
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+
+      console.log('Kayko: MutationObserver set up for form detection (debounced)');
+    }
+  }
+
+  // Start form detection when DOM is ready
+  // Note: init() for textarea detection is already called above
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFormDetection);
+  } else {
+    initFormDetection();
+  }
+  
+  // Expose manual trigger for debugging
+  window.kaykoDetectForms = function() {
+    console.log('Kayko: Manual form detection triggered');
+    detectForms();
+    console.log('Kayko: Currently tracking', trackedForms.size || 0, 'forms');
+  };
+  
+  window.kaykoTestFormSave = async function() {
+    const forms = document.querySelectorAll('form');
+    if (forms.length === 0) {
+      console.log('Kayko: No forms found on page');
+      return;
+    }
+    console.log('Kayko: Testing form save on first form');
+    const form = forms[0];
+    await saveFormData(form);
+    await checkForSavedFormData(form);
+  };
+  
+  window.kaykoDebug = function() {
+    console.log('=== Kayko Debug Info ===');
+    console.log('Hostname:', window.location.hostname);
+    console.log('Is LLM Website:', isLLMWebsite());
+    console.log('Tracked textareas:', trackedTextareas.size || 0);
+    console.log('Tracked forms:', trackedForms.size || 0);
+    console.log('Tracked icons:', trackedIcons.size || 0);
+    
+    const textareas = document.querySelectorAll('textarea, [contenteditable]');
+    console.log('Found textareas/contenteditable:', textareas.length);
+    textareas.forEach((t, i) => {
+      const rect = t.getBoundingClientRect();
+      console.log(`Textarea ${i}:`, {
+        tag: t.tagName,
+        id: t.id,
+        className: t.className,
+        contentEditable: t.isContentEditable,
+        size: { width: rect.width, height: rect.height },
+        tracked: trackedTextareas.has(t)
+      });
+    });
+    
+    const forms = document.querySelectorAll('form');
+    console.log('Found forms:', forms.length);
+    forms.forEach((f, i) => {
+      console.log(`Form ${i}:`, {
+        id: f.id,
+        action: f.action,
+        fields: f.querySelectorAll('input, textarea, select').length,
+        tracked: trackedForms.has(f)
+      });
+    });
+  };
+
+  // Listen for messages from side panel
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'restoreFormFromCard') {
+      // Find and restore the form on this page
+      (async () => {
+        try {
+          const formUrl = request.formUrl;
+          const currentUrl = window.location.href;
+
+          // Check if we're on the correct page
+          if (!currentUrl.includes(new URL(formUrl).pathname)) {
+            sendResponse({ success: false, error: 'Not on the form page' });
+            return;
+          }
+
+          // Find the form that matches the saved data
+          const forms = document.querySelectorAll('form');
+          let restoredForm = null;
+
+          for (const form of forms) {
+            const storageKey = getFormStorageKey(form);
+            const result = await chrome.storage.local.get('formData');
+            const allFormData = result.formData || {};
+
+            if (allFormData[storageKey] &&
+                JSON.stringify(allFormData[storageKey]) === JSON.stringify(request.formData)) {
+              // Found matching form, restore it
+              const success = await restoreFormData(form);
+              if (success) {
+                restoredForm = form;
+                break;
+              }
+            }
+          }
+
+          // If no exact match, try to restore to the first form
+          if (!restoredForm && forms.length > 0) {
+            const success = await restoreFormData(forms[0]);
+            if (success) {
+              restoredForm = forms[0];
+            }
+          }
+
+          sendResponse({ success: !!restoredForm });
+        } catch (error) {
+          console.error('Error restoring form from card:', error);
+          sendResponse({ success: false, error: error.message });
+        }
+      })();
+
+      return true; // Keep the message channel open for async response
+    }
+  });
 })();
 

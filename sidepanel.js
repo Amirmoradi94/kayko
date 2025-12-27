@@ -90,13 +90,23 @@ async function loadData() {
   settings = result.settings || { 
     maxPrompts: 100, 
     autoSaveEnabled: false,
+    formAutoSaveEnabled: true,
     openaiApiKey: ''
   };
+  // Ensure formAutoSaveEnabled exists
+  if (settings.formAutoSaveEnabled === undefined) {
+    settings.formAutoSaveEnabled = true;
+  }
   filteredPrompts = [...allPrompts];
 }
 
 // Setup event listeners
 function setupEventListeners() {
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
   // Search
   document.getElementById('searchInput').addEventListener('input', handleSearch);
   
@@ -124,6 +134,320 @@ function setupEventListeners() {
   
   // Listen for storage changes
   chrome.storage.onChanged.addListener(handleStorageChange);
+}
+
+// Tab switching
+function switchTab(tabName) {
+  // Update tab buttons
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabName);
+  });
+
+  // Update tab content
+  document.querySelectorAll('.tab-content').forEach(content => {
+    content.classList.toggle('active', content.dataset.tab === tabName);
+  });
+
+  // Load and render appropriate data
+  if (tabName === 'forms') {
+    renderForms();
+    updateStorageInfo('forms');
+  } else {
+    renderPrompts();
+    updateStorageInfo('prompts');
+  }
+}
+
+// Render forms list
+async function renderForms() {
+  const formsListEl = document.getElementById('formsList');
+  const emptyStateEl = document.getElementById('formsEmptyState');
+
+  try {
+    const result = await chrome.storage.local.get('formData');
+    const formData = result.formData || {};
+    const formKeys = Object.keys(formData);
+
+    if (formKeys.length === 0) {
+      emptyStateEl.style.display = 'flex';
+      return;
+    }
+
+    emptyStateEl.style.display = 'none';
+
+    // Clear existing forms (except empty state)
+    Array.from(formsListEl.children).forEach(child => {
+      if (child.id !== 'formsEmptyState') {
+        child.remove();
+      }
+    });
+
+    // Render each saved form
+    formKeys.forEach(key => {
+      const form = formData[key];
+      const formCard = createFormCard(key, form);
+      formsListEl.appendChild(formCard);
+    });
+
+  } catch (error) {
+    console.error('Error rendering forms:', error);
+  }
+}
+
+// Create form card element
+function createFormCard(storageKey, formInfo) {
+  const card = document.createElement('div');
+  card.className = 'form-card';
+
+  const url = new URL(formInfo.url);
+  const hostname = url.hostname;
+  const allFields = Object.entries(formInfo.fields || {}).filter(([key, field]) => {
+    const value = field.value;
+    // Filter out empty fields
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'boolean') return value;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === 'object') {
+      // Handle new object format
+      if (value.checked !== undefined) return value.checked;
+      if (value.selectedValue !== undefined) return value.selectedValue !== null;
+      if (value.values) return value.values.length > 0;
+      if (value.displayValue) return value.displayValue && value.displayValue.trim().length > 0;
+      if (value.value !== undefined) return value.value && value.value.toString().trim().length > 0;
+    }
+    return value && value.toString().trim().length > 0;
+  });
+  const fieldCount = allFields.length;
+  const date = new Date(formInfo.timestamp);
+  const previewCount = 3;
+  const hasMore = fieldCount > previewCount;
+
+  card.innerHTML = `
+    <div class="form-card-header">
+      <div class="form-card-info">
+        <div class="form-card-website">${hostname}</div>
+        <div class="form-card-meta">
+          <span>${fieldCount} field${fieldCount !== 1 ? 's' : ''}</span>
+          <span>•</span>
+          <span>${formatDate(date)}</span>
+        </div>
+      </div>
+      <button class="form-card-delete" data-key="${storageKey}" title="Delete saved form">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 4h12M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1m2 0v9a2 2 0 01-2 2H5a2 2 0 01-2-2V4h10z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="form-card-fields">
+      <div class="form-fields-preview">
+        ${allFields.slice(0, previewCount).map(([key, field]) => {
+          const displayValue = getDisplayValue(field.value);
+          const fieldLabel = field.label || field.name || field.id || key;
+          return `<div class="form-field-preview">
+            <span class="field-name">${fieldLabel}</span>
+            <span class="field-value">${displayValue}</span>
+          </div>`;
+        }).join('')}
+      </div>
+      ${hasMore ? `
+        <div class="form-fields-hidden" style="display: none;">
+          ${allFields.slice(previewCount).map(([key, field]) => {
+            const displayValue = getDisplayValue(field.value);
+            const fieldLabel = field.label || field.name || field.id || key;
+            return `<div class="form-field-preview">
+              <span class="field-name">${fieldLabel}</span>
+              <span class="field-value">${displayValue}</span>
+            </div>`;
+          }).join('')}
+        </div>
+        <button class="form-expand-btn">
+          <span class="expand-text">Show ${fieldCount - previewCount} more field${fieldCount - previewCount !== 1 ? 's' : ''}</span>
+          <span class="collapse-text" style="display: none;">Show less</span>
+          <svg class="expand-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      ` : ''}
+    </div>
+    <div class="form-card-actions">
+      <button class="form-card-btn form-restore-btn-card" data-url="${formInfo.url}">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 4px;">
+          <path d="M2 8a6 6 0 1 0 12 0M8 4v5l3.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Restore
+      </button>
+      <a href="${formInfo.url}" target="_blank" class="form-card-btn">Open</a>
+    </div>
+  `;
+
+  // Add delete handler
+  const deleteBtn = card.querySelector('.form-card-delete');
+  deleteBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    await deleteFormData(storageKey);
+  });
+
+  // Add restore button handler
+  const restoreBtn = card.querySelector('.form-restore-btn-card');
+  if (restoreBtn) {
+    restoreBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      try {
+        // Get the current active tab
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+        if (!tab) {
+          alert('No active tab found');
+          return;
+        }
+
+        // Send message to content script to restore the form
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'restoreFormFromCard',
+          formUrl: formInfo.url,
+          formData: formInfo
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            alert('Could not restore form. Please open the form page first.');
+          } else if (response && response.success) {
+            restoreBtn.textContent = '✓ Restored';
+            restoreBtn.style.background = '#10B981';
+            setTimeout(() => {
+              restoreBtn.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 4px;">
+                  <path d="M2 8a6 6 0 1 0 12 0M8 4v5l3.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Restore
+              `;
+              restoreBtn.style.background = '';
+            }, 2000);
+          }
+        });
+      } catch (error) {
+        console.error('Error restoring form:', error);
+        alert('Error restoring form. Please try again.');
+      }
+    });
+  }
+
+  // Add expand/collapse handler
+  const expandBtn = card.querySelector('.form-expand-btn');
+  if (expandBtn) {
+    expandBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const hiddenFields = card.querySelector('.form-fields-hidden');
+      const expandText = expandBtn.querySelector('.expand-text');
+      const collapseText = expandBtn.querySelector('.collapse-text');
+      const expandIcon = expandBtn.querySelector('.expand-icon');
+
+      const isExpanded = hiddenFields.style.display !== 'none';
+
+      if (isExpanded) {
+        // Collapse
+        hiddenFields.style.display = 'none';
+        expandText.style.display = 'inline';
+        collapseText.style.display = 'none';
+        expandIcon.style.transform = 'rotate(0deg)';
+        card.classList.remove('expanded');
+      } else {
+        // Expand
+        hiddenFields.style.display = 'block';
+        expandText.style.display = 'none';
+        collapseText.style.display = 'inline';
+        expandIcon.style.transform = 'rotate(180deg)';
+        card.classList.add('expanded');
+      }
+    });
+  }
+
+  return card;
+}
+
+// Delete form data
+async function deleteFormData(storageKey) {
+  if (!confirm('Delete this saved form?')) return;
+
+  try {
+    const result = await chrome.storage.local.get('formData');
+    const formData = result.formData || {};
+    delete formData[storageKey];
+    await chrome.storage.local.set({ formData });
+    renderForms();
+    updateStorageInfo('forms');
+  } catch (error) {
+    console.error('Error deleting form data:', error);
+  }
+}
+
+// Update storage info for current tab
+async function updateStorageInfo(tab = 'prompts') {
+  const storageInfoEl = document.getElementById('storageInfo');
+
+  if (tab === 'forms') {
+    const result = await chrome.storage.local.get('formData');
+    const formData = result.formData || {};
+    const count = Object.keys(formData).length;
+    storageInfoEl.innerHTML = `<span id="formCount">${count}</span> form${count !== 1 ? 's' : ''} saved`;
+  } else {
+    storageInfoEl.innerHTML = `<span id="promptCount">${allPrompts.length}</span> prompt${allPrompts.length !== 1 ? 's' : ''} saved`;
+  }
+}
+
+// Format date helper
+function formatDate(date) {
+  const now = new Date();
+  const diff = now - date;
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days} days ago`;
+  if (days < 30) return `${Math.floor(days / 7)} week${Math.floor(days / 7) !== 1 ? 's' : ''} ago`;
+  return date.toLocaleDateString();
+}
+
+// Get display value for form field (handles new object format)
+function getDisplayValue(value) {
+  if (value === null || value === undefined) return '';
+
+  // Handle legacy simple values
+  if (typeof value === 'boolean') {
+    return value ? '✓ Checked' : '✗ Unchecked';
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    return value.toString();
+  }
+  if (Array.isArray(value)) {
+    return value.join(', ');
+  }
+
+  // Handle new object format
+  if (typeof value === 'object') {
+    // Use displayValue if available
+    if (value.displayValue !== undefined && value.displayValue !== null) {
+      return value.displayValue.toString();
+    }
+    // Checkbox
+    if (value.checked !== undefined) {
+      return value.checked ? '✓ Checked' : '✗ Unchecked';
+    }
+    // Radio group
+    if (value.selectedValue !== undefined) {
+      return value.displayValue || value.selectedValue || 'None selected';
+    }
+    // Multi-select
+    if (value.values && Array.isArray(value.values)) {
+      return value.displayValue || value.values.join(', ');
+    }
+    // Single value
+    if (value.value !== undefined) {
+      return value.displayValue || value.value.toString();
+    }
+  }
+
+  return value.toString();
 }
 
 // Handle search
@@ -849,6 +1173,7 @@ async function openSettings() {
   // Populate current settings
   document.getElementById('maxPromptsInput').value = settings.maxPrompts;
   document.getElementById('autoSaveToggle').checked = settings.autoSaveEnabled === true;
+  document.getElementById('formAutoSaveToggle').checked = settings.formAutoSaveEnabled !== false;
   document.getElementById('openaiApiKeyInput').value = settings.openaiApiKey || '';
   
   // Set version from manifest
@@ -872,9 +1197,10 @@ function closeSettings() {
 async function saveSettings() {
   const maxPrompts = parseInt(document.getElementById('maxPromptsInput').value);
   const autoSaveEnabled = document.getElementById('autoSaveToggle').checked;
+  const formAutoSaveEnabled = document.getElementById('formAutoSaveToggle').checked;
   const openaiApiKey = document.getElementById('openaiApiKeyInput').value.trim();
   
-  settings = { maxPrompts, autoSaveEnabled, openaiApiKey };
+  settings = { maxPrompts, autoSaveEnabled, formAutoSaveEnabled, openaiApiKey };
   await chrome.storage.local.set({ settings });
   
   // Trim prompts if needed
@@ -889,9 +1215,7 @@ async function saveSettings() {
 }
 
 // Update storage info
-function updateStorageInfo() {
-  document.getElementById('promptCount').textContent = allPrompts.length;
-}
+// Old updateStorageInfo removed - now using context-aware version above
 
 // Handle storage changes from other contexts
 function handleStorageChange(changes, namespace) {
@@ -911,6 +1235,7 @@ function handleStorageChange(changes, namespace) {
       if (modal && !modal.classList.contains('hidden')) {
         document.getElementById('maxPromptsInput').value = settings.maxPrompts || 100;
         document.getElementById('autoSaveToggle').checked = settings.autoSaveEnabled === true;
+        document.getElementById('formAutoSaveToggle').checked = settings.formAutoSaveEnabled !== false;
         document.getElementById('openaiApiKeyInput').value = settings.openaiApiKey || '';
       }
     }

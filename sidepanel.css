@@ -803,3 +803,264 @@ body.theme-perplexity .btn-sm.primary:hover {
   background: var(--text-secondary);
 }
 
+/* ==========================================
+   TABS
+   ========================================== */
+
+.tabs-container {
+  display: flex;
+  gap: 0;
+  padding: 0 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==========================================
+   FORMS LIST
+   ========================================== */
+
+.forms-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  padding-right: 40px;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+
+.forms-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.forms-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.forms-list::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.forms-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Form Card */
+.form-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  margin-right: 16px;
+  transition: all 0.2s;
+  box-sizing: border-box;
+  width: calc(100% - 18px);
+  max-width: calc(100% - 18px);
+  overflow: hidden;
+}
+
+.form-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.form-card-info {
+  flex: 1;
+}
+
+.form-card-website {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.form-card-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.form-card-delete {
+  padding: 6px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-card-delete:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
+}
+
+.form-card-fields {
+  background: var(--bg-primary);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+}
+
+.form-field-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  font-size: 13px;
+}
+
+.form-field-preview:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.field-name {
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.field-value {
+  color: var(--text-primary);
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+.form-fields-hidden {
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+.form-expand-btn {
+  width: 100%;
+  padding: 10px 12px;
+  margin-top: 8px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.form-expand-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+}
+
+.form-expand-btn .expand-icon {
+  transition: transform 0.3s ease;
+}
+
+.form-card-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-card-btn {
+  flex: 1;
+  padding: 10px 12px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.form-card-btn:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-restore-btn-card {
+  background: #10B981;
+}
+
+.form-restore-btn-card:hover {
+  background: #059669;
+}
+

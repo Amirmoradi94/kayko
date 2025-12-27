@@ -13,15 +13,28 @@ chrome.runtime.onInstalled.addListener(async () => {
     await chrome.storage.local.set({
       settings: {
         maxPrompts: 100,
-        autoSaveEnabled: false
+        autoSaveEnabled: false,
+        formAutoSaveEnabled: true
       }
     });
+  } else {
+    // Ensure formAutoSaveEnabled exists in existing settings
+    if (result.settings.formAutoSaveEnabled === undefined) {
+      result.settings.formAutoSaveEnabled = true;
+      await chrome.storage.local.set({ settings: result.settings });
+    }
   }
   
   // Initialize prompts array if needed
   const prompts = await chrome.storage.local.get('prompts');
   if (!prompts.prompts) {
     await chrome.storage.local.set({ prompts: [] });
+  }
+  
+  // Initialize formData object if needed
+  const formData = await chrome.storage.local.get('formData');
+  if (!formData.formData) {
+    await chrome.storage.local.set({ formData: {} });
   }
 });
 
