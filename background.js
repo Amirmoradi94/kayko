@@ -67,7 +67,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === 'updateBadge') {
     updateBadgeCount();
   }
-  return true;
+  // Don't return true - we're not sending any async response
 });
 
 // Update badge with today's prompt count (disabled - no badge numbers shown)

@@ -20,6 +20,30 @@
   let debounceTimers = new WeakMap();
   const positionUpdateTimers = new WeakMap(); // Debounce position updates
 
+  // Cached auto-save setting (avoids storage read on every input)
+  let cachedAutoSaveEnabled = true; // Default to enabled
+
+  // Initialize cached setting and listen for changes
+  (async function initAutoSaveCache() {
+    try {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        const result = await chrome.storage.local.get('settings');
+        const settings = result.settings || { autoSaveEnabled: true };
+        cachedAutoSaveEnabled = settings.autoSaveEnabled !== false;
+
+        // Listen for storage changes to update cache
+        chrome.storage.onChanged.addListener((changes, area) => {
+          if (area === 'local' && changes.settings) {
+            const newSettings = changes.settings.newValue || { autoSaveEnabled: true };
+            cachedAutoSaveEnabled = newSettings.autoSaveEnabled !== false;
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Kayko: Error initializing auto-save cache', error);
+    }
+  })();
+
   // Check if current website is a supported LLM platform
   function isLLMWebsite() {
     const hostname = window.location.hostname;
@@ -511,48 +535,20 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
     }
   }
 
-  // Position the icon relative to textarea (attached to top-right border, outside)
+  // Position the icon at bottom-right corner of the viewport
   function positionIcon(textarea, iconWrapper) {
-    const rect = textarea.getBoundingClientRect();
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-    
-    // iconWrapper is the wrapper div returned by createIcon
-    iconWrapper.style.position = 'absolute';
-    
-    // For ChatGPT, position on the right side (outside the textarea)
-    const isChatGPT = window.location.hostname.includes('chatgpt.com') || window.location.hostname.includes('openai.com');
-    const isPerplexity = window.location.hostname.includes('perplexity.ai');
-    const isClaude = window.location.hostname.includes('claude.ai') || window.location.hostname.includes('anthropic.com');
-    // Google AI Studio and Gemini are separate platforms
-    const isAIStudio = window.location.hostname.includes('aistudio.google.com');
-    const isGemini = window.location.hostname.includes('gemini.google.com') ||
-                     (window.location.hostname.includes('google.com') && (window.location.hostname.includes('gemini') || window.location.pathname.includes('gemini')));
-    
-    if (isChatGPT) {
-      // Position on the right side, vertically centered
-      iconWrapper.style.top = `${rect.top + scrollTop + (rect.height / 2) - 32}px`; // Vertically centered (half of 64px wrapper)
-      iconWrapper.style.left = `${rect.right + scrollLeft + 15}px`; // 15px to the right of textarea
-    } else if (isPerplexity) {
-      // For Perplexity, position relative to top border of textarea
-      iconWrapper.style.top = `${rect.top + scrollTop - 60}px`; // Relative to top border
-      iconWrapper.style.left = `${rect.right + scrollLeft - 50}px`; // 50px from right edge
-    } else if (isClaude) {
-      // For Claude, position higher than default
-      iconWrapper.style.top = `${rect.top + scrollTop - 63}px`; // Above textarea
-      iconWrapper.style.left = `${rect.right + scrollLeft - 50}px`; // From right edge
-    } else if (isAIStudio || isGemini) {
-      // For Google AI Studio and Gemini, position higher than default
-      iconWrapper.style.top = `${rect.top + scrollTop - 66}px`; // Above textarea
-      iconWrapper.style.left = `${rect.right + scrollLeft - 50}px`; // From right edge
-    } else {
-      // For other platforms, keep top-right position
-      iconWrapper.style.top = `${rect.top + scrollTop - 28}px`; // 28px above (half the icon height)
-      iconWrapper.style.left = `${rect.right + scrollLeft - 28}px`; // 28px from right edge (half icon width)
-    }
-    
-    iconWrapper.style.zIndex = '10000';
-    console.log('Kayko: Icon positioned at', iconWrapper.style.top, iconWrapper.style.left);
+    // Position icon at bottom-right corner of viewport (fixed position)
+    iconWrapper.style.position = 'fixed';
+    iconWrapper.style.display = 'block';
+    iconWrapper.style.visibility = 'visible';
+    iconWrapper.style.opacity = '1';
+    iconWrapper.style.bottom = '20px';
+    iconWrapper.style.right = '20px';
+    iconWrapper.style.top = 'auto';
+    iconWrapper.style.left = 'auto';
+    iconWrapper.style.zIndex = '2147483647';
+
+    console.log('Kayko: Icon positioned at bottom-right corner (fixed)');
   }
 
   // Update icon state - now uses CSS classes for SVG cat face animations
@@ -621,30 +617,42 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       const currentPlatform = prompt.platform;
       let foundExistingPrompt = false;
       
-      // Helper function to calculate coverage percentage
+      // Helper function to calculate coverage percentage - O(n) complexity
       function calculateCoverage(newText, existingText) {
         // If new text contains the entire existing text, coverage is 100%
         if (newText.includes(existingText)) {
           return 100;
         }
-        
-        // Calculate coverage based on longest common substring
-        const existingLen = existingText.length;
-        if (existingLen === 0) return 0;
-        
-        // Find the longest substring of existing text that appears in new text
-        let maxMatchLength = 0;
-        for (let i = 0; i < existingLen; i++) {
-          for (let j = i + 1; j <= existingLen; j++) {
-            const substring = existingText.substring(i, j);
-            if (newText.includes(substring)) {
-              maxMatchLength = Math.max(maxMatchLength, substring.length);
-            }
-          }
+
+        // If existing text contains new text, coverage based on length ratio
+        if (existingText.includes(newText)) {
+          return (newText.length / existingText.length) * 100;
         }
-        
+
+        const existingLen = existingText.length;
+        const newLen = newText.length;
+        if (existingLen === 0) return 0;
+
+        // Find common prefix length
+        let commonPrefixLen = 0;
+        const minLen = Math.min(newLen, existingLen);
+        while (commonPrefixLen < minLen && newText[commonPrefixLen] === existingText[commonPrefixLen]) {
+          commonPrefixLen++;
+        }
+
+        // Find common suffix length (don't overlap with prefix)
+        let commonSuffixLen = 0;
+        const maxSuffixLen = minLen - commonPrefixLen;
+        while (commonSuffixLen < maxSuffixLen &&
+               newText[newLen - 1 - commonSuffixLen] === existingText[existingLen - 1 - commonSuffixLen]) {
+          commonSuffixLen++;
+        }
+
+        // Total matched characters
+        const totalMatched = commonPrefixLen + commonSuffixLen;
+
         // Return coverage percentage
-        return (maxMatchLength / existingLen) * 100;
+        return (totalMatched / existingLen) * 100;
       }
       
       for (let i = 0; i < prompts.length; i++) {
@@ -770,10 +778,9 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
   async function handleTextareaInput(textarea, iconWrapper) {
     const icon = getInnerIcon(iconWrapper);
     if (!icon) return;
-    
-    // Check if auto-save is enabled
-    const autoSaveEnabled = await isAutoSaveEnabled();
-    if (!autoSaveEnabled) {
+
+    // Check if auto-save is enabled (using cached value - no storage read)
+    if (!cachedAutoSaveEnabled) {
       // Auto-save is disabled, just update icon to show it's ready for manual save
       setIconState(icon, 'idle');
       icon.title = 'Kayko - Click to manually save prompt';
@@ -785,12 +792,12 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       clearTimeout(debounceTimers.get(textarea));
     }
 
-    // Show saving state
-    setIconState(icon, 'saving');
-    icon.title = 'Kayko - Auto-saving...';
-
-    // Set new timer
+    // Set new timer (icon state changes only when actually saving, not on every keystroke)
     const timer = setTimeout(async () => {
+      // Show saving state only when actually about to save
+      setIconState(icon, 'saving');
+      icon.title = 'Kayko - Auto-saving...';
+
       const text = getTextContent(textarea);
       const success = await savePrompt(textarea, text);
       if (success) {
@@ -919,7 +926,7 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
         trackedIcons.add(icon);
       }
 
-      // Add input listeners (multiple events for better compatibility)
+      // Add input listener (input event handles all text changes including paste)
       const inputHandler = () => {
         try {
           handleTextareaInput(textarea, icon);
@@ -927,10 +934,8 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
           console.error('Kayko: Error in input handler', error);
         }
       };
-      
+
       textarea.addEventListener('input', inputHandler, { passive: true });
-      textarea.addEventListener('keyup', inputHandler, { passive: true });
-      textarea.addEventListener('paste', inputHandler, { passive: true });
 
       // Add Enter key listener to save prompt when Enter is pressed
       const enterKeyHandler = (e) => {
@@ -955,20 +960,17 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
                   if (success) {
                     setIconState(innerIcon, 'saved');
                     innerIcon.title = 'Saved!';
-                    setTimeout(async () => {
+                    setTimeout(() => {
                       setIconState(innerIcon, 'idle');
-                      const autoSaveEnabled = await isAutoSaveEnabled();
-                      innerIcon.title = autoSaveEnabled 
-                        ? 'Kayko - Click to view saved prompts' 
+                      innerIcon.title = cachedAutoSaveEnabled
+                        ? 'Kayko - Click to view saved prompts'
                         : 'Kayko - Click to manually save prompt';
                     }, 2000);
                   } else {
                     setIconState(innerIcon, 'idle');
-                    isAutoSaveEnabled().then(autoSaveEnabled => {
-                      innerIcon.title = autoSaveEnabled 
-                        ? 'Kayko - Click to view saved prompts' 
-                        : 'Kayko - Click to manually save prompt';
-                    });
+                    innerIcon.title = cachedAutoSaveEnabled
+                      ? 'Kayko - Click to view saved prompts'
+                      : 'Kayko - Click to manually save prompt';
                   }
                 }
               }).catch(error => {
@@ -985,14 +987,11 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
 
       // Get inner icon for title and event listeners
       const innerIcon = getInnerIcon(icon);
-      
-      // Update icon title based on auto-save status
-      (async () => {
-        const autoSaveEnabled = await isAutoSaveEnabled();
-        if (!autoSaveEnabled && innerIcon) {
-          innerIcon.title = 'Kayko - Click to manually save prompt (Right-click to view saved prompts)';
-        }
-      })();
+
+      // Update icon title based on auto-save status (using cached value)
+      if (!cachedAutoSaveEnabled && innerIcon) {
+        innerIcon.title = 'Kayko - Click to manually save prompt (Right-click to view saved prompts)';
+      }
 
       // Right-click handler to open side panel (works regardless of auto-save setting)
       if (innerIcon) {
@@ -1309,51 +1308,32 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       console.log('Kayko: Starting textarea detection...');
       detectTextareas();
 
-      // Delayed detection for dynamically loaded content
+      // Single delayed detection for dynamically loaded content (MutationObserver handles the rest)
       setTimeout(() => {
         try {
-          //console.log('Kayko: Running delayed detection (500ms)');
           detectTextareas();
         } catch (error) {
-          console.error('Kayko: Error in delayed detection (500ms)', error);
-        }
-      }, 500);
-      
-      setTimeout(() => {
-        try {
-          //console.log('Kayko: Running delayed detection (1s)');
-          detectTextareas();
-        } catch (error) {
-          console.error('Kayko: Error in delayed detection (1s)', error);
+          console.error('Kayko: Error in delayed detection', error);
         }
       }, 1000);
-      
-      setTimeout(() => {
-        try {
-          //console.log('Kayko: Running delayed detection (2s)');
-          detectTextareas();
-        } catch (error) {
-          console.error('Kayko: Error in delayed detection (2s)', error);
-        }
-      }, 2000);
-      
-      setTimeout(() => {
-        try {
-          //console.log('Kayko: Running delayed detection (3s)');
-          detectTextareas();
-        } catch (error) {
-          console.error('Kayko: Error in delayed detection (3s)', error);
-        }
-      }, 3000);
 
       // Watch for dynamically added textareas (less aggressive to avoid conflicts)
       if (document.body) {
+        let mutationDebounceTimer = null;
+        const MUTATION_DEBOUNCE_DELAY = 500; // 500ms debounce
+
         const observer = new MutationObserver(() => {
-          try {
-            detectTextareas();
-          } catch (error) {
-            // Silently fail to avoid breaking the page
+          // Debounce to avoid firing 100+ times/sec during streaming responses
+          if (mutationDebounceTimer) {
+            clearTimeout(mutationDebounceTimer);
           }
+          mutationDebounceTimer = setTimeout(() => {
+            try {
+              detectTextareas();
+            } catch (error) {
+              // Silently fail to avoid breaking the page
+            }
+          }, MUTATION_DEBOUNCE_DELAY);
         });
 
         observer.observe(document.body, {
@@ -1362,16 +1342,14 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
         });
       }
 
-      // Periodic check for new textareas (some sites load them dynamically)
+      // Periodic cleanup (safety net - MutationObserver handles most dynamic content)
       setInterval(() => {
         try {
-          // Clean up orphaned icons periodically
           cleanupIcons();
-          detectTextareas();
         } catch (error) {
           // Silently fail
         }
-      }, 3000); // Changed from 2s to 3s to be less aggressive
+      }, 10000); // Every 10s just for cleanup, detection handled by MutationObserver
       
       // Clean up icons when page becomes visible again (user returns to tab)
       document.addEventListener('visibilitychange', () => {
