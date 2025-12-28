@@ -257,18 +257,18 @@
     leftToggle.title = context === 'form' ? 'Form auto-save: OFF' : 'Auto-save: OFF';
     leftToggle.setAttribute('data-context', context);
 
-    // Right ear toggle - Context-aware (Enhance for prompts, Restore for forms)
+    // Right ear toggle - Context-aware (Enhance for prompts, Save for forms)
     const rightToggle = document.createElement('button');
     rightToggle.className = 'kayko-toggle-right';
     rightToggle.type = 'button';
-    const rightLabel = context === 'form' ? 'Restore form data' : 'Enhance prompt with AI';
+    const rightLabel = context === 'form' ? 'Save form data' : 'Enhance prompt with AI';
     rightToggle.setAttribute('aria-label', rightLabel);
     rightToggle.title = rightLabel;
     rightToggle.setAttribute('data-context', context);
 
     // Add different icon/styling for form context
     if (context === 'form') {
-      rightToggle.classList.add('toggle-restore');
+      rightToggle.classList.add('toggle-save');
     }
     
     earToggles.appendChild(leftToggle);
@@ -319,37 +319,38 @@
       }
     });
     
-    // Right toggle click handler - Context-aware (Enhance for prompts, Restore for forms)
+    // Right toggle click handler - Context-aware (Enhance for prompts, Save for forms)
     rightToggle.addEventListener('click', async (e) => {
       e.stopPropagation();
       e.preventDefault();
 
       try {
         if (context === 'form') {
-          // Form context: Restore form data
+          // Form context: Manually save form data (bypasses auto-save setting)
           // Find the parent form - textarea here is actually the form element
           const form = (textarea && textarea.tagName === 'FORM') ? textarea : textarea.closest('form');
 
           if (!form) {
             rightToggle.title = 'No form found';
             setTimeout(() => {
-              rightToggle.title = 'Restore form data';
+              rightToggle.title = 'Save form data';
             }, 2000);
             return;
           }
 
-          const success = await restoreFormData(form);
+          // Manual save - bypasses auto-save check
+          const success = await manualSaveFormData(form);
           if (success) {
             rightToggle.classList.add('toggle-feedback');
-            rightToggle.title = 'Restored!';
+            rightToggle.title = 'Saved!';
             setTimeout(() => {
               rightToggle.classList.remove('toggle-feedback');
-              rightToggle.title = 'Restore form data';
+              rightToggle.title = 'Save form data';
             }, 2000);
           } else {
-            rightToggle.title = 'No saved data to restore';
+            rightToggle.title = 'No data to save';
             setTimeout(() => {
-              rightToggle.title = 'Restore form data';
+              rightToggle.title = 'Save form data';
             }, 2000);
           }
         } else {
@@ -394,9 +395,9 @@
 
       } catch (error) {
         //console.error('Kayko: Error in right toggle', error);
-        rightToggle.title = context === 'form' ? 'Restore failed' : 'Enhancement failed';
+        rightToggle.title = context === 'form' ? 'Save failed' : 'Enhancement failed';
         setTimeout(() => {
-          const label = context === 'form' ? 'Restore form data' : 'Enhance prompt with AI';
+          const label = context === 'form' ? 'Save form data' : 'Enhance prompt with AI';
           rightToggle.title = label;
         }, 2000);
       }
@@ -1842,13 +1843,97 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
   }
 
   // Save form data to storage
+  // Manual save form data (bypasses auto-save setting check)
+  async function manualSaveFormData(form) {
+    try {
+      if (!extensionContextValid || typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+        console.warn('Kayko: Extension context invalid, cannot save form data');
+        return false;
+      }
+
+      // Manual save - no auto-save check, always proceed
+      const storageKey = getFormStorageKey(form);
+      const fields = getFormFields(form);
+
+      console.log('Kayko: Manual save - found', Object.keys(fields).length, 'fields');
+
+      // Helper to check if a field value is non-empty
+      const isFieldValueNonEmpty = (val) => {
+        if (val === null || val === undefined) return false;
+        if (typeof val === 'boolean') return val;
+        if (Array.isArray(val)) return val.length > 0;
+        if (typeof val === 'object') {
+          if (val.checked !== undefined) return val.checked;
+          if (val.selectedValue !== undefined) return val.selectedValue !== null;
+          if (val.values) return val.values.length > 0;
+          if (val.value !== undefined) return val.value && val.value.toString().trim().length > 0;
+          if (val.displayValue) return val.displayValue && val.displayValue.toString().trim().length > 0;
+        }
+        return val && val.toString().trim().length > 0;
+      };
+
+      // Get existing saved data to merge with
+      const result = await chrome.storage.local.get('formData');
+      const allFormData = result.formData || {};
+      const existingSavedData = allFormData[storageKey];
+      const isUpdate = !!existingSavedData;
+
+      const formData = {
+        formId: getFormIdentifier(form),
+        url: window.location.href,
+        timestamp: Date.now(),
+        fields: {}
+      };
+
+      // Merge: preserve existing saved values, only overwrite with non-empty new values
+      // This ensures cleared fields don't lose their saved data
+      Object.keys(fields).forEach(key => {
+        const currentField = fields[key];
+        const existingField = existingSavedData?.fields?.[key];
+        const isCurrentNonEmpty = isFieldValueNonEmpty(currentField.value);
+
+        if (isCurrentNonEmpty) {
+          // Current field has data - use it
+          formData.fields[key] = {
+            value: currentField.value,
+            type: currentField.type,
+            id: currentField.id,
+            name: currentField.name,
+            label: currentField.label,
+            selector: currentField.selector
+          };
+        } else if (existingField) {
+          // Current field is empty but we have saved data - preserve it
+          formData.fields[key] = existingField;
+        }
+        // If both are empty, don't include the field
+      });
+
+      // Only save if we have at least some data (either new or preserved)
+      if (Object.keys(formData.fields).length === 0) {
+        console.log('Kayko: No data to save');
+        return false;
+      }
+
+      allFormData[storageKey] = formData;
+      await chrome.storage.local.set({ formData: allFormData });
+
+      console.log(`Kayko: Form data ${isUpdate ? 'updated' : 'saved'} manually (key: ${storageKey})`);
+
+      return true;
+    } catch (error) {
+      console.error('Kayko: Error in manual save', error);
+      return false;
+    }
+  }
+
   async function saveFormData(form) {
     try {
       if (!extensionContextValid || typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
         console.warn('Kayko: Extension context invalid, cannot save form data');
         return false;
       }
-      
+
       const enabled = await isFormAutoSaveEnabled();
       if (!enabled) {
         console.log('Kayko: Form auto-save disabled');
@@ -1857,17 +1942,15 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
       
       const storageKey = getFormStorageKey(form);
       const fields = getFormFields(form);
-      
+
       console.log('Kayko: Saving form data, found', Object.keys(fields).length, 'fields');
-      
-      // Don't save if form is empty
-      const hasData = Object.values(fields).some(f => {
-        const val = f.value;
+
+      // Helper to check if a field value is non-empty
+      const isFieldValueNonEmpty = (val) => {
         if (val === null || val === undefined) return false;
         if (typeof val === 'boolean') return val;
         if (Array.isArray(val)) return val.length > 0;
         if (typeof val === 'object') {
-          // Handle new object format
           if (val.checked !== undefined) return val.checked;
           if (val.selectedValue !== undefined) return val.selectedValue !== null;
           if (val.values) return val.values.length > 0;
@@ -1875,43 +1958,52 @@ Return ONLY the enhanced prompt. No quotes, no labels, no explanations. Just the
           if (val.displayValue) return val.displayValue && val.displayValue.toString().trim().length > 0;
         }
         return val && val.toString().trim().length > 0;
-      });
-      
-      if (!hasData) {
-        console.log('Kayko: Form is empty, removing saved data');
-        // Remove saved data if form is empty
-        const result = await chrome.storage.local.get('formData');
-        const formData = result.formData || {};
-        delete formData[storageKey];
-        await chrome.storage.local.set({ formData });
-        updateRestoreButton(form, false);
-        return false;
-      }
-      
+      };
+
+      // Get existing saved data to merge with
+      const result = await chrome.storage.local.get('formData');
+      const allFormData = result.formData || {};
+      const existingSavedData = allFormData[storageKey];
+      const isUpdate = !!existingSavedData;
+
       const formData = {
         formId: getFormIdentifier(form),
         url: window.location.href,
         timestamp: Date.now(),
         fields: {}
       };
-      
-      // Store field data including human-readable labels
-      Object.keys(fields).forEach(key => {
-        formData.fields[key] = {
-          value: fields[key].value,
-          type: fields[key].type,
-          id: fields[key].id,
-          name: fields[key].name,
-          label: fields[key].label,
-          selector: fields[key].selector
-        };
-      });
-      
-      const result = await chrome.storage.local.get('formData');
-      const allFormData = result.formData || {};
-      const isUpdate = allFormData.hasOwnProperty(storageKey);
-      allFormData[storageKey] = formData;
 
+      // Merge: preserve existing saved values, only overwrite with non-empty new values
+      // This ensures cleared fields don't lose their saved data
+      Object.keys(fields).forEach(key => {
+        const currentField = fields[key];
+        const existingField = existingSavedData?.fields?.[key];
+        const isCurrentNonEmpty = isFieldValueNonEmpty(currentField.value);
+
+        if (isCurrentNonEmpty) {
+          // Current field has data - use it
+          formData.fields[key] = {
+            value: currentField.value,
+            type: currentField.type,
+            id: currentField.id,
+            name: currentField.name,
+            label: currentField.label,
+            selector: currentField.selector
+          };
+        } else if (existingField) {
+          // Current field is empty but we have saved data - preserve it
+          formData.fields[key] = existingField;
+        }
+        // If both are empty, don't include the field
+      });
+
+      // Only save if we have at least some data (either new or preserved)
+      if (Object.keys(formData.fields).length === 0) {
+        console.log('Kayko: No data to save (form empty and no previous data)');
+        return false;
+      }
+
+      allFormData[storageKey] = formData;
       await chrome.storage.local.set({ formData: allFormData });
 
       console.log(`Kayko: Form data ${isUpdate ? 'updated' : 'created'} successfully (key: ${storageKey})`);

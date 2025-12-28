@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Kayko - Your Ultimate Prompt Manager 🐱",
-  "version": "1.0.5",
-  "description": "Auto-save your LLM prompts locally. Never lose your carefully crafted prompts again - works across popular AI chat platforms.",
+  "name": "Kayko - Protect Your Prompts & Forms 🐱",
+  "version": "1.1.0",
+  "description": "Auto-save your LLM prompts and form data locally. Works across popular AI chat platforms and any website.",
   "permissions": [
     "storage",
     "activeTab",

@@ -502,7 +502,7 @@ body.theme-claude .sidepanel-header h1 {
 }
 
 .btn-sm {
-  padding: 4px 12px;
+  padding: 2px 12px;
   border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 12px;
@@ -886,13 +886,14 @@ body.theme-perplexity .btn-sm.primary:hover {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 16px;
+  padding-bottom: 18px;
   margin-bottom: 12px;
   margin-right: 16px;
   transition: all 0.2s;
   box-sizing: border-box;
   width: calc(100% - 18px);
   max-width: calc(100% - 18px);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .form-card:hover {
